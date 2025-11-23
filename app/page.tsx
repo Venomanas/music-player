@@ -123,7 +123,6 @@ const musicCategories = [
 const searchMusic = async (query: string): Promise<Track[]> => {
   if (!query.trim()) return [];
   return new Promise(resolve => {
-    // Fixed: Removed double nesting of setTimeout and fixed syntax errors
     setTimeout(() => {
       const filtered = sampleTracks.filter(
         track =>
@@ -370,11 +369,11 @@ export default function MusicPlayer() {
   const getGreeting = () => {
     const hours = new Date().getHours();
     if (hours < 12) return "Morning";
-    if (hours < 18) return "Afternoon"; // Fixed: removed leading space
+    if (hours < 18) return "Afternoon";
     return "Evening";
   };
 
-  // --- Sub component : TrackRow ---
+  // --- Sub component : TrackRow --- (tweaked animations)
   const TrackRow = ({
     track,
     onPlay,
@@ -392,11 +391,11 @@ export default function MusicPlayer() {
   }) => (
     <div
       onClick={onPlay}
-      className={`flex items-center space-x-4 p-3 rounded-lg hover:bg-white/10 cursor-pointer group transition-colors ${
-        currentTrack?.id === track.id ? "bg-white/10" : ""
-      }`}
+      className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer group transition-all duration-150 ease-out
+        ${currentTrack?.id === track.id ? "bg-white/10" : "hover:bg-white/5"}
+        active:scale-[0.99]
+      `}
     >
-      {/* Note: bg-linear-to-br is correct for Tailwind v4 as requested */}
       <div className="relative w-12 h-12 rounded-lg bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden shrink-0">
         <Image
           src={track.coverUrl}
@@ -405,7 +404,7 @@ export default function MusicPlayer() {
           height={48}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           <Music className="w-4 h-4 text-white" />
         </div>
       </div>
@@ -424,7 +423,7 @@ export default function MusicPlayer() {
               onRemove();
             }}
             aria-label="Remove from playlist"
-            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg transition-all"
+            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg transition-all duration-150"
           >
             <X className="w-4 h-4 text-red-400" />
           </button>
@@ -435,7 +434,7 @@ export default function MusicPlayer() {
             onAddToPlaylist();
           }}
           aria-label="Add to playlist"
-          className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg transition-all"
+          className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg transition-all duration-150"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -445,7 +444,7 @@ export default function MusicPlayer() {
             onLike();
           }}
           aria-label="Like song"
-          className="opacity-0 group-hover:opacity-100 transition-all p-2 hover:bg-white/10 rounded-lg"
+          className="opacity-0 group-hover:opacity-100 transition-all duration-150 p-2 hover:bg-white/10 rounded-lg"
         >
           <Heart
             className={`w-5 h-5 ${
@@ -457,30 +456,30 @@ export default function MusicPlayer() {
     </div>
   );
 
-  // --- Authentication View ---
+  // --- Authentication View --- //
   if (!isMounted) return null; // Prevent hydration mismatch
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-        <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl w-full max-w-md border border-white/20 shadow-xl">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-950 via-slate-950 to-purple-950 p-4">
+        <div className="bg-white/5 backdrop-blur-xl p-8 rounded-2xl w-full max-w-md border border-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.6)]">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 bg-purple-600/90 rounded-full flex items-center justify-center shadow-lg shadow-purple-700/40">
               <Music className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-center text-white mb-2">
+          <h2 className="text-3xl font-bold text-center text-white mb-2 tracking-tight">
             {authMode === "signin" ? "Welcome Back" : "Create Account"}
           </h2>
-          <p className="text-center text-gray-300 mb-8">
+          <p className="text-center text-gray-300/90 mb-8 text-sm">
             {authMode === "signin"
-              ? "Enter your details to access your music"
-              : "Sign up to start listening"}
+              ? "Sign in to pick up your music where you left off."
+              : "Sign up to start building your personal library."}
           </p>
 
           <form onSubmit={handleAuth} className="space-y-4">
             {authError && (
-              <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg text-sm text-center">
+              <div className="bg-red-500/10 border border-red-500/40 text-red-200 px-4 py-2 rounded-lg text-sm text-center">
                 {authError}
               </div>
             )}
@@ -490,7 +489,7 @@ export default function MusicPlayer() {
                 <input
                   type="text"
                   placeholder="Full Name"
-                  className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/80 transition-all text-sm"
                   value={formData.fullName}
                   onChange={e =>
                     setFormData({ ...formData, fullName: e.target.value })
@@ -503,7 +502,7 @@ export default function MusicPlayer() {
               <input
                 type="email"
                 placeholder="Email Address"
-                className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                className="w-full px-4 py-3 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/80 transition-all text-sm"
                 value={formData.email}
                 onChange={e =>
                   setFormData({ ...formData, email: e.target.value })
@@ -515,7 +514,7 @@ export default function MusicPlayer() {
               <input
                 type="password"
                 placeholder="Password"
-                className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                className="w-full px-4 py-3 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/80 transition-all text-sm"
                 value={formData.password}
                 onChange={e =>
                   setFormData({ ...formData, password: e.target.value })
@@ -528,7 +527,7 @@ export default function MusicPlayer() {
                 <input
                   type="password"
                   placeholder="Confirm Password"
-                  className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/80 transition-all text-sm"
                   value={formData.confirmPassword}
                   onChange={e =>
                     setFormData({
@@ -542,7 +541,7 @@ export default function MusicPlayer() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg text-white font-bold shadow-lg transform hover:scale-[1.02] transition-all duration-200"
+              className="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg text-white font-semibold shadow-lg shadow-purple-700/40 transform hover:translate-y-[1px] transition-all duration-150 text-sm"
             >
               {authMode === "signin" ? "Sign In" : "Sign Up"}
             </button>
@@ -560,7 +559,7 @@ export default function MusicPlayer() {
                   confirmPassword: "",
                 });
               }}
-              className="text-purple-300 hover:text-white text-sm transition-colors"
+              className="text-purple-300 hover:text-white text-xs transition-colors"
             >
               {authMode === "signin"
                 ? "Don't have an account? Sign up"
@@ -574,13 +573,13 @@ export default function MusicPlayer() {
 
   // --- Main App View --- //
   return (
-    <div className="h-screen bg-linear-to-br from-gray-900 via-purple-900 to-violet-900 text-white flex flex-col">
+    <div className="h-screen bg-linear-to-br from-gray-950 via-slate-950 to-purple-950 text-white flex flex-col">
       <audio ref={audioRef} src={currentTrack?.audioUrl} preload="metadata" />
 
       {/* Modals */}
       {showCreatePlaylist && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-white/10">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-xl p-6 max-w-md w-full border border-white/10 shadow-xl shadow-black/60">
             <h3 className="text-xl font-bold mb-4 text-white">
               Create New Playlist
             </h3>
@@ -590,12 +589,12 @@ export default function MusicPlayer() {
               onChange={e => setNewPlaylistName(e.target.value)}
               onKeyDown={e => e.key === "Enter" && createPlaylist()}
               placeholder="Playlist name"
-              className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-4 transition-colors"
+              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/15 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-4 text-sm"
             />
             <div className="flex space-x-3">
               <button
                 onClick={createPlaylist}
-                className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition-colors"
+                className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-500 rounded-lg font-semibold transition-colors text-sm"
               >
                 Create
               </button>
@@ -604,7 +603,7 @@ export default function MusicPlayer() {
                   setShowCreatePlaylist(false);
                   setNewPlaylistName("");
                 }}
-                className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors"
+                className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-lg font-semibold transition-colors text-sm"
               >
                 Cancel
               </button>
@@ -614,8 +613,8 @@ export default function MusicPlayer() {
       )}
 
       {showAddToPlaylist && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto border border-white/10">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto border border-white/10 shadow-xl shadow-black/60">
             <h3 className="text-xl font-bold mb-4 text-white">
               Add to Playlist
             </h3>
@@ -625,11 +624,11 @@ export default function MusicPlayer() {
                   <button
                     key={p.id}
                     onClick={() => addTrackToPlaylist(p.id)}
-                    className="w-full text-left px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors flex justify-between items-center"
+                    className="w-full text-left px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors flex justify-between items-center text-sm"
                   >
                     <div>
                       <div className="font-semibold text-white">{p.name}</div>
-                      <div className="text-sm text-white/60">
+                      <div className="text-xs text-white/60">
                         {p.trackIds.length} tracks
                       </div>
                     </div>
@@ -638,8 +637,8 @@ export default function MusicPlayer() {
                 ))}
               </div>
             ) : (
-              <p className="text-white/60 text-center py-4">
-                No playlists yet. Create one first!
+              <p className="text-white/60 text-center py-4 text-sm">
+                No playlists yet. Create one first.
               </p>
             )}
             <button
@@ -647,7 +646,7 @@ export default function MusicPlayer() {
                 setShowAddToPlaylist(false);
                 setSelectedTrackForPlaylist(null);
               }}
-              className="w-full mt-4 px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors"
+              className="w-full mt-4 px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-lg font-semibold transition-colors text-sm"
             >
               Close
             </button>
@@ -656,7 +655,7 @@ export default function MusicPlayer() {
       )}
 
       {/* Header */}
-      <header className="bg-black/30 backdrop-blur-lg border-b border-white/10 p-4 flex items-center justify-between">
+      <header className="bg-black/30 backdrop-blur-lg border-b border-white/5 p-4 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -666,19 +665,20 @@ export default function MusicPlayer() {
             <Menu className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-2">
-            <Music className="w-8 h-8 text-purple-400" />
-            <h1 className="text-2xl font-bold text-white hidden sm:block tracking-tight">
+            <div className="w-8 h-8 rounded-lg bg-purple-600/90 flex items-center justify-center shadow-md shadow-purple-700/40">
+              <Music className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl font-semibold text-white hidden sm:block tracking-tight">
               MusicStream
             </h1>
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          {/* User Icon was previously unused, now displayed here */}
           <div className="hidden sm:flex items-center gap-2">
             <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
+              <User className="w-4 h-4 text-white" />
             </div>
-            <span className="text-sm text-purple-300 font-medium">
+            <span className="text-xs text-purple-200 font-medium">
               {user?.fullName}
             </span>
           </div>
@@ -689,7 +689,7 @@ export default function MusicPlayer() {
               setIsPlaying(false);
             }}
             aria-label="Sign Out"
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium transition-colors"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sign Out</span>
@@ -697,21 +697,37 @@ export default function MusicPlayer() {
         </div>
       </header>
 
+      {/* Sidebar overlay (fixed UX) */}
+      {sidebarOpen && (
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden backdrop-blur-sm transition-opacity duration-200 ease-out"
+        />
+      )}
+
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <aside
-          className={`${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-64 bg-black/40 backdrop-blur-lg border-r border-white/10 p-4 duration-300 ease-in-out transition-transform overflow-y-auto`}
+          className={`fixed inset-y-0 left-0 z-40 w-64 bg-black/45 backdrop-blur-xl border-r border-white/5 p-4 transition-transform duration-200 ease-out overflow-y-auto
+            ${
+              sidebarOpen
+                ? "translate-x-0 shadow-xl shadow-black/60"
+                : "-translate-x-full"
+            }
+            lg:static lg:translate-x-0 lg:shadow-none
+          `}
           style={{ height: "calc(100vh - 80px)" }}
         >
           <div className="flex justify-between items-center mb-6 lg:hidden">
-            <h2 className="text-xl font-bold text-white">Menu</h2>
+            <h2 className="text-lg font-semibold text-white">Menu</h2>
             <button
               onClick={() => setSidebarOpen(false)}
               className="text-white/80 hover:text-white transition-colors"
+              aria-label="Close menu"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
@@ -722,13 +738,15 @@ export default function MusicPlayer() {
                 setSidebarOpen(false);
                 setViewingPlaylist(null);
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                currentView === "home" && !viewingPlaylist
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
-                  : "text-white/80 hover:bg-white/10 hover:text-white"
-              }`}
+              className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors text-sm active:scale-[0.98]
+                ${
+                  currentView === "home" && !viewingPlaylist
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-700/40"
+                    : "text-white/80 hover:bg-white/5 hover:text-white"
+                }
+              `}
             >
-              <Home className="w-5 h-5" />
+              <Home className="w-4 h-4" />
               <span>Home</span>
             </button>
             <button
@@ -737,13 +755,15 @@ export default function MusicPlayer() {
                 setSidebarOpen(false);
                 setViewingPlaylist(null);
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                currentView === "search"
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
-                  : "text-white/80 hover:bg-white/10 hover:text-white"
-              }`}
+              className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors text-sm active:scale-[0.98]
+                ${
+                  currentView === "search"
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-700/40"
+                    : "text-white/80 hover:bg-white/5 hover:text-white"
+                }
+              `}
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-4 h-4" />
               <span>Search</span>
             </button>
             <button
@@ -752,13 +772,15 @@ export default function MusicPlayer() {
                 setSidebarOpen(false);
                 setViewingPlaylist(null);
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                currentView === "library" && !viewingPlaylist
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
-                  : "text-white/80 hover:bg-white/10 hover:text-white"
-              }`}
+              className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors text-sm active:scale-[0.98]
+                ${
+                  currentView === "library" && !viewingPlaylist
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-700/40"
+                    : "text-white/80 hover:bg-white/5 hover:text-white"
+                }
+              `}
             >
-              <Library className="w-5 h-5" />
+              <Library className="w-4 h-4" />
               <span>Your Library</span>
             </button>
           </nav>
@@ -766,10 +788,10 @@ export default function MusicPlayer() {
           <div className="mt-8">
             <button
               onClick={() => setShowCreatePlaylist(true)}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors group"
+              className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-white/80 hover:bg-white/5 hover:text-white transition-colors group text-sm active:scale-[0.98]"
             >
-              <div className="p-1 bg-white/20 rounded-md group-hover:bg-white/30 transition-colors">
-                <Plus className="w-5 h-5" />
+              <div className="p-1 bg-white/15 rounded-md group-hover:bg-white/25 transition-colors">
+                <Plus className="w-4 h-4" />
               </div>
               <span>Create Playlist</span>
             </button>
@@ -779,16 +801,16 @@ export default function MusicPlayer() {
                 setSidebarOpen(false);
                 setViewingPlaylist(null);
               }}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+              className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm active:scale-[0.98]"
             >
-              <Heart className="w-5 h-5 text-white fill-white" />
+              <Heart className="w-4 h-4 text-white fill-white" />
               <span>Liked Songs ({tracks.filter(t => t.liked).length})</span>
             </button>
           </div>
 
           {playlists.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-sm font-semibold text-white/60 px-4 mb-2 uppercase tracking-wider">
+              <h3 className="text-xs font-semibold text-white/50 px-4 mb-2 uppercase tracking-wider">
                 Your Playlists
               </h3>
               <div className="space-y-1">
@@ -799,14 +821,16 @@ export default function MusicPlayer() {
                       setViewingPlaylist(p);
                       setSidebarOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors text-sm ${
-                      viewingPlaylist?.id === p.id
-                        ? "bg-white/10 text-white"
-                        : "text-white/80 hover:bg-white/10 hover:text-white"
-                    }`}
+                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors text-xs active:scale-[0.98]
+                      ${
+                        viewingPlaylist?.id === p.id
+                          ? "bg-white/10 text-white"
+                          : "text-white/75 hover:bg-white/5 hover:text-white"
+                      }
+                    `}
                   >
                     <div className="flex items-center space-x-2">
-                      <ListMusic className="w-4 h-4 opacity-70" />
+                      <ListMusic className="w-3.5 h-3.5 opacity-70" />
                       <span className="truncate">{p.name}</span>
                     </div>
                   </button>
@@ -818,32 +842,32 @@ export default function MusicPlayer() {
 
         {/* Main Content */}
         <main
-          className="flex-1 overflow-y-auto p-4 lg:p-8 pb-32 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+          className="flex-1 overflow-y-auto p-4 lg:p-8 pb-32 scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent"
           style={{ paddingBottom: currentTrack ? "140px" : "20px" }}
         >
           {viewingPlaylist ? (
             <div>
-              <div className="bg-linear-to-r from-purple-600 to-pink-600 p-6 rounded-xl mb-6 shadow-xl">
+              <div className="bg-linear-to-r from-purple-600 to-pink-600 p-6 rounded-xl mb-6 shadow-xl shadow-purple-900/40">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center space-x-4">
-                    <div className="w-20 h-20 bg-linear-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center shrink-0 shadow-lg ">
+                    <div className="w-20 h-20 bg-linear-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center shrink-0 shadow-lg shadow-purple-900/40">
                       <ListMusic className="w-10 h-10 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white/80">
+                      <p className="text-xs font-semibold text-white/80 mb-1">
                         PLAYLIST
                       </p>
-                      <h2 className="text-3xl font-bold text-white">
+                      <h2 className="text-2xl sm:text-3xl font-bold text-white">
                         {viewingPlaylist.name}
                       </h2>
-                      <p className="text-white/80">
+                      <p className="text-white/80 text-sm">
                         {getPlaylistTracks(viewingPlaylist).length} tracks
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => deletePlaylist(viewingPlaylist.id)}
-                    className="px-4 py-2 bg-pink-100 hover:bg-purple-600 rounded-lg text-sm font-semibold transition-colors text-black hover:text-white border border-red-500/20 "
+                    className="px-4 py-2 bg-white/90 hover:bg-purple-600 rounded-lg text-xs font-semibold transition-colors text-black hover:text-white border border-red-500/20"
                   >
                     Delete Playlist
                   </button>
@@ -869,12 +893,12 @@ export default function MusicPlayer() {
                     />
                   ))
                 ) : (
-                  <div className="text-center py-12 text-white/60">
-                    <ListMusic className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <div className="text-center py-12 text-white/60 text-sm">
+                    <ListMusic className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No tracks in this playlist yet.</p>
                     <button
                       onClick={() => setCurrentView("search")}
-                      className="mt-4 text-purple-400 hover:text-purple-300 underline"
+                      className="mt-3 text-purple-300 hover:text-purple-200 underline"
                     >
                       Find songs to add
                     </button>
@@ -886,13 +910,13 @@ export default function MusicPlayer() {
             <>
               {currentView === "home" && (
                 <div>
-                  <h2 className="text-3xl font-bold mb-6 text-white">
+                  <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-white">
                     Good {getGreeting()}
                   </h2>
 
                   {/* Categories */}
                   <section className="mb-8">
-                    <h3 className="text-2xl font-bold mb-4 text-white">
+                    <h3 className="text-xl sm:text-2xl font-semibold mb-4 text-white">
                       Browse Categories
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
@@ -902,11 +926,13 @@ export default function MusicPlayer() {
                           onClick={() => setSelectedCategory(category.id)}
                           className={`bg-linear-to-r ${
                             category.color
-                          } p-4 rounded-lg text-white font-semibold text-sm hover:scale-105 transition-transform ${
-                            selectedCategory === category.id
-                              ? "ring-2 ring-white ring-opacity-50"
-                              : ""
-                          }`}
+                          } p-4 rounded-lg text-white font-semibold text-xs sm:text-sm transition-all duration-150
+                            ${
+                              selectedCategory === category.id
+                                ? "ring-2 ring-white/70 shadow-md shadow-black/40"
+                                : "hover:shadow-md hover:shadow-black/40 hover:scale-[1.02]"
+                            }
+                          `}
                         >
                           {category.name}
                         </button>
@@ -916,11 +942,13 @@ export default function MusicPlayer() {
 
                   {/* Recent Tracks */}
                   <section>
-                    <h3 className="text-2xl font-bold mb-4 text-white">
+                    <h3 className="text-xl sm:text-2xl font-semibold mb-4 text-white">
                       {selectedCategory === "all"
                         ? "All Tracks"
-                        : musicCategories.find(c => c.id === selectedCategory)
-                            ?.name + " Tracks"}
+                        : `${
+                            musicCategories.find(c => c.id === selectedCategory)
+                              ?.name
+                          }`}
                     </h3>
                     <div className="space-y-2">
                       {filteredTracks.slice(0, 8).map(track => (
@@ -942,23 +970,23 @@ export default function MusicPlayer() {
 
               {currentView === "search" && (
                 <div>
-                  <h2 className="text-3xl font-bold mb-6 text-white">
+                  <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-white">
                     Search Music
                   </h2>
                   <div className="mb-6">
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder="Search for songs, artists, albums, or genres..."
+                        placeholder="Search songs, artists, albums, or genres..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors text-lg "
+                        className="w-full px-10 py-3 rounded-lg bg-white/5 border border-white/15 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors text-sm sm:text-base"
                         autoFocus
                       />
-                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-white/60" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/60" />
                       {isSearching && (
-                        <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500" />
                         </div>
                       )}
                     </div>
@@ -968,7 +996,7 @@ export default function MusicPlayer() {
                   <div className="space-y-2">
                     {searchQuery && (
                       <>
-                        <h3 className="text-xl font-bold mb-4 text-white">
+                        <h3 className="text-lg font-semibold mb-3 text-white">
                           {isSearching
                             ? "Searching..."
                             : `Search Results (${searchResults.length})`}
@@ -987,13 +1015,13 @@ export default function MusicPlayer() {
                             />
                           ))
                         ) : !isSearching ? (
-                          <div className="text-center py-12 text-white/60">
-                            <Search className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                          <div className="text-center py-12 text-white/60 text-sm">
+                            <Search className="w-12 h-12 mx-auto mb-3 opacity-50" />
                             <p>
-                              No results found for &quot;{searchQuery}&quot;
+                              No results found for &quot;{searchQuery}&quot;.
                             </p>
-                            <p className="text-sm mt-2">
-                              Try different keywords or browse categories
+                            <p className="text-xs mt-2">
+                              Try different keywords or browse categories.
                             </p>
                           </div>
                         ) : null}
@@ -1003,8 +1031,8 @@ export default function MusicPlayer() {
 
                   {/* Categories in Search */}
                   {!searchQuery && (
-                    <div className="mb-6">
-                      <h3 className="text-xl font-bold mb-4 text-white">
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold mb-3 text-white">
                         Browse by Category
                       </h3>
                       <div className="flex flex-wrap gap-2">
@@ -1012,11 +1040,13 @@ export default function MusicPlayer() {
                           <button
                             key={category.id}
                             onClick={() => setSelectedCategory(category.id)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-                              selectedCategory === category.id
-                                ? `bg-linear-to-r ${category.color} text-white`
-                                : "bg-white/10 text-white/80 hover:bg-white/20"
-                            }`}
+                            className={`px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors duration-150
+                              ${
+                                selectedCategory === category.id
+                                  ? `bg-linear-to-r ${category.color} text-white`
+                                  : "bg-white/5 text-white/80 hover:bg-white/10"
+                              }
+                            `}
                           >
                             {category.name}
                           </button>
@@ -1029,30 +1059,30 @@ export default function MusicPlayer() {
 
               {currentView === "library" && (
                 <div>
-                  <h2 className="text-3xl font-bold mb-6 text-white">
+                  <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-white">
                     Your Library
                   </h2>
 
                   {/* Liked Songs Section */}
                   <section className="mb-8">
                     <div
-                      className="bg-linear-to-r from-purple-600 to-pink-600 p-6 rounded-xl mb-6 shadow-lg cursor-pointer hover:scale-[1.01] transition-transform"
+                      className="bg-linear-to-r from-purple-600 to-pink-600 p-6 rounded-xl mb-6 shadow-lg shadow-purple-900/40 cursor-pointer hover:scale-[1.01] transition-transform"
                       onClick={() => {
-                        // Toggle logic can go here
+                        // Could navigate to a "Liked Songs" detail view later
                       }}
                     >
                       <div className="flex items-center space-x-4">
-                        <div className="w-20 h-20 bg-linear-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center shadow-md">
+                        <div className="w-20 h-20 bg-linear-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center shadow-md shadow-purple-900/40">
                           <Heart className="w-10 h-10 text-white fill-white" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white/80">
+                          <p className="text-xs font-semibold text-white/80 mb-1">
                             PLAYLIST
                           </p>
                           <h3 className="text-2xl font-bold text-white">
                             Liked Songs
                           </h3>
-                          <p className="text-white/80">
+                          <p className="text-white/80 text-sm">
                             {tracks.filter(t => t.liked).length} liked songs
                           </p>
                         </div>
@@ -1060,7 +1090,7 @@ export default function MusicPlayer() {
                     </div>
 
                     <div className="space-y-2">
-                      {tracks.length > 0 ? (
+                      {tracks.filter(track => track.liked).length > 0 ? (
                         tracks
                           .filter(track => track.liked)
                           .map(track => (
@@ -1076,9 +1106,12 @@ export default function MusicPlayer() {
                             />
                           ))
                       ) : (
-                        <div className="text-center py-12 text-white/60">
-                          <Search className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                          <p>No results found. Try a different search term.</p>
+                        <div className="text-center py-12 text-white/60 text-sm">
+                          <Search className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>No liked songs yet.</p>
+                          <p className="text-xs mt-2">
+                            Tap the heart icon on any song to add it here.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -1087,7 +1120,7 @@ export default function MusicPlayer() {
                   {/* Playlists Section */}
                   {playlists.length > 0 && (
                     <section>
-                      <h3 className="text-2xl font-bold mb-4 text-white">
+                      <h3 className="text-xl sm:text-2xl font-semibold mb-4 text-white">
                         Your Playlists
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1095,28 +1128,28 @@ export default function MusicPlayer() {
                           <div
                             key={playlist.id}
                             onClick={() => setViewingPlaylist(playlist)}
-                            className="bg-white/5 hover:bg-white/10 rounded-xl p-4 transition-all duration-200 cursor-pointer group hover:-translate-y-1"
+                            className="bg-white/5 hover:bg-white/8 rounded-xl p-4 transition-all duration-150 cursor-pointer group hover:-translate-y-[2px] shadow-sm hover:shadow-md hover:shadow-black/40"
                           >
-                            <div className="w-full aspect-square rounded-lg bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-3 relative overflow-hidden shadow-lg">
+                            <div className="w-full aspect-square rounded-lg bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-3 relative overflow-hidden">
                               {playlist.coverUrl ? (
                                 <Image
                                   src={playlist.coverUrl}
                                   alt={playlist.name}
                                   width={200}
                                   height={200}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-150"
                                 />
                               ) : (
                                 <ListMusic className="w-8 h-8 text-white" />
                               )}
-                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-xs">
-                                <Play className="w-8 h-8 text-white fill-white" />
+                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 backdrop-blur-[1px]">
+                                <Play className="w-7 h-7 text-white fill-white" />
                               </div>
                             </div>
-                            <h4 className="font-semibold truncate text-white">
+                            <h4 className="font-semibold truncate text-sm text-white">
                               {playlist.name}
                             </h4>
-                            <p className="text-sm text-white/60">
+                            <p className="text-xs text-white/60">
                               {playlist.trackIds.length} tracks
                             </p>
                           </div>
@@ -1133,43 +1166,39 @@ export default function MusicPlayer() {
 
       {/* Player Bar */}
       {currentTrack && (
-        <div className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/10 p-4 z-50 shadow-2xl">
+        <div className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/5 p-4 z-50 shadow-[0_-16px_40px_rgba(0,0,0,0.75)]">
           <div className="max-w-screen-2xl mx-auto">
             {/* Progress Bar */}
             <div className="mb-3 group/progress">
               <div
                 onClick={handleProgressClick}
-                className="h-1 bg-white/20 rounded-full cursor-pointer relative"
+                className="h-1 bg-white/15 rounded-full cursor-pointer relative"
               >
                 <div
-                  className="h-full bg-purple-500 rounded-full relative group-hover/progress:bg-purple-400 transition-colors duration-200"
+                  className="h-full bg-purple-500 rounded-full relative group-hover/progress:bg-purple-400 transition-colors duration-150"
                   style={{ width: `${progress}%` }}
                 >
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity duration-200 shadow-md scale-150" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity duration-150 shadow-md scale-150" />
                 </div>
               </div>
-              <div className="flex justify-between text-xs text-white/60 mt-1 font-medium">
+              <div className="flex justify-between text-[10px] sm:text-xs text-white/60 mt-1 font-medium">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               {/* Track Info */}
               <div className="flex items-center space-x-3 flex-1 min-w-0">
-                <div className="relative w-14 h-14 rounded-lg overflow-hidden hidden sm:block shadow-md">
+                <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden hidden sm:block shadow-md shadow-black/60 group/cover">
                   <Image
                     src={currentTrack.coverUrl}
                     alt={currentTrack.title}
                     width={56}
                     height={56}
-                    className="w-full h-full object-cover animate-spin-slow"
-                    style={{
-                      animationPlayState: isPlaying ? "running" : "paused",
-                      animationDuration: "10s",
-                    }}
+                    className="w-full h-full object-cover transition-transform duration-200 group-hover/cover:scale-[1.05]"
                   />
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity duration-150">
                     <Music className="w-4 h-4 text-white" />
                   </div>
                 </div>
@@ -1177,14 +1206,14 @@ export default function MusicPlayer() {
                   <h4 className="font-semibold truncate text-sm sm:text-base text-white">
                     {currentTrack.title}
                   </h4>
-                  <p className="text-xs sm:text-sm text-white/60 truncate hover:underline cursor-pointer">
+                  <p className="text-[11px] sm:text-xs text-white/60 truncate">
                     {currentTrack.artist}
                   </p>
                 </div>
                 <button
                   onClick={() => toggleLike(currentTrack.id)}
                   aria-label="Like song"
-                  className="hidden md:block p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  className="hidden md:block p-2 hover:bg-white/5 rounded-lg transition-colors"
                 >
                   <Heart
                     className={`w-5 h-5 ${
@@ -1197,29 +1226,29 @@ export default function MusicPlayer() {
               </div>
 
               {/* Controls */}
-              <div className="flex items-center space-x-2 sm:space-x-4 mx-4">
+              <div className="flex items-center space-x-2 sm:space-x-4 mx-2 sm:mx-4">
                 <button
                   onClick={handlePrevious}
                   aria-label="Previous Track"
-                  className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                  className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg"
                 >
                   <SkipBack className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
                 <button
                   onClick={handlePlayPause}
                   aria-label={isPlaying ? "Pause" : "Play"}
-                  className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-110 transition-transform duration-200 shadow-lg shadow-white/10"
+                  className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-white text-black rounded-full hover:scale-[1.05] transition-transform duration-150 shadow-lg shadow-black/50"
                 >
                   {isPlaying ? (
-                    <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-black" />
+                    <Pause className="w-5 h-5 sm:w-5 sm:h-5 fill-black" />
                   ) : (
-                    <Play className="w-5 h-5 sm:w-6 sm:h-6 ml-1 fill-black" />
+                    <Play className="w-5 h-5 sm:w-5 sm:h-5 ml-[1px] fill-black" />
                   )}
                 </button>
                 <button
                   onClick={handleNext}
                   aria-label="Next Track"
-                  className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                  className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg"
                 >
                   <SkipForward className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
@@ -1230,7 +1259,7 @@ export default function MusicPlayer() {
                 <button
                   onClick={() => setVolume(volume === 0 ? 70 : 0)}
                   aria-label="Mute"
-                  className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                  className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg"
                 >
                   {volume === 0 ? (
                     <VolumeX className="w-5 h-5" />
@@ -1245,20 +1274,21 @@ export default function MusicPlayer() {
                   value={volume}
                   onChange={e => setVolume(Number(e.target.value))}
                   aria-label="Volume Control"
-                  className="w-24 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:opacity-0 group-hover/volume:[&::-webkit-slider-thumb]:opacity-100 transition-all"
+                  className="w-24 h-1 bg-white/15 rounded-lg appearance-none cursor-pointer
+                    [&::-webkit-slider-thumb]:appearance-none
+                    [&::-webkit-slider-thumb]:w-3
+                    [&::-webkit-slider-thumb]:h-3
+                    [&::-webkit-slider-thumb]:bg-white
+                    [&::-webkit-slider-thumb]:rounded-full
+                    [&::-webkit-slider-thumb]:opacity-0
+                    group-hover/volume:[&::-webkit-slider-thumb]:opacity-100
+                    transition-all
+                  "
                 />
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Overlay for mobile sidebar */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
-        />
       )}
     </div>
   );
