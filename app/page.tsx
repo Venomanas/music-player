@@ -541,7 +541,7 @@ export default function MusicPlayer() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg text-white font-semibold shadow-lg shadow-purple-700/40 transform hover:translate-y-[1px] transition-all duration-150 text-sm"
+              className="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg text-white font-semibold shadow-lg shadow-purple-700/40 transform hover:translate-y-px transition-all duration-150 text-sm"
             >
               {authMode === "signin" ? "Sign In" : "Sign Up"}
             </button>
@@ -1128,7 +1128,7 @@ export default function MusicPlayer() {
                           <div
                             key={playlist.id}
                             onClick={() => setViewingPlaylist(playlist)}
-                            className="bg-white/5 hover:bg-white/8 rounded-xl p-4 transition-all duration-150 cursor-pointer group hover:-translate-y-[2px] shadow-sm hover:shadow-md hover:shadow-black/40"
+                            className="bg-white/5 hover:bg-white/8 rounded-xl p-4 transition-all duration-150 cursor-pointer group hover:-translate-y-2px shadow-sm hover:shadow-md hover:shadow-black/40"
                           >
                             <div className="w-full aspect-square rounded-lg bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-3 relative overflow-hidden">
                               {playlist.coverUrl ? (
@@ -1242,7 +1242,7 @@ export default function MusicPlayer() {
                   {isPlaying ? (
                     <Pause className="w-5 h-5 sm:w-5 sm:h-5 fill-black" />
                   ) : (
-                    <Play className="w-5 h-5 sm:w-5 sm:h-5 ml-[1px] fill-black" />
+                    <Play className="w-5 h-5 sm:w-5 sm:h-5 ml-1px fill-black" />
                   )}
                 </button>
                 <button
