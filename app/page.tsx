@@ -17,7 +17,7 @@ import {
   Menu,
   X,
   ListMusic,
-  User, // Now used in the Header
+  User, 
   LogOut,
 } from "lucide-react";
 
