@@ -7,6 +7,7 @@ import PianoKeyboard from "@/src/components/studio/PianoKeyboard";
 import DrumMachine from "@/src/components/studio/DrumMachine";
 import MixerBoard from "@/src/components/studio/MixerBoard";
 import MusicLibrary from "@/src/components/player/musicLibrary"; 
+import Sequencer from "@/src/components/studio/Sequencer";
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"stream" | "studio">("stream");
@@ -75,6 +76,7 @@ export default function HomePage() {
               <PianoKeyboard />
               <DrumMachine />
             </div>
+            <Sequencer />
             <MixerBoard />
 
             <div className="bg-gray-900/50 p-6 rounded-2xl border border-white/10">
