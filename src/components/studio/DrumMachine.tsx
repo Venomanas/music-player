@@ -1,70 +1,49 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import React, { useState , useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { getDrums } from "@/src/lib/audio/instruments";
+import { getDrums, type DrumSound } from "@/src/lib/audio/instruments"; // Import DrumSound type
 
 const DrumMachine: React.FC = () => {
   const [activePad, setActivePad] = useState<string | null>(null);
+  const [drums, setDrums] = useState<ReturnType<typeof getDrums> | null>(null);
 
-     const [drums, setDrums] = useState<any>(null);
+  useEffect(() => {
+    // Initialize drums only on client side
+    if (typeof window !== "undefined") {
+      setDrums(getDrums());
+    }
+  }, []);
 
-     useEffect(() => {
-       // Initialize drums only on client side
-       if (typeof window !== "undefined") {
-         setDrums(getDrums()); // Use getDrums() instead of drums
-       }
-     }, []);
-
-    // const [piano, setPiano] = useState<Piano | null>(null);
-
-  const drumPads = [
-    { id: "kick", label: "Kick", color: "bg-red-500", key: "Q" },
-    { id: "snare", label: "Snare", color: "bg-blue-500", key: "W" },
-    { id: "hihat", label: "Hi-Hat", color: "bg-green-500", key: "E" },
-    { id: "tom", label: "Tom", color: "bg-yellow-500", key: "R" },
-    { id: "clap", label: "Clap", color: "bg-purple-500", key: "A" },
-    { id: "crash", label: "Crash", color: "bg-pink-500", key: "S" },
-    { id: "ride", label: "Ride", color: "bg-indigo-500", key: "D" },
-    { id: "cowbell", label: "Cowbell", color: "bg-orange-500", key: "F" },
+  const drumPads: Array<{
+    id: DrumSound;
+    label: string;
+    color: string;
+    key: string;
+  }> = [
+    { id: "kick", label: "Kick", color: "bg-red-500", key: "Z" },
+    { id: "snare", label: "Snare", color: "bg-blue-500", key: "X" },
+    { id: "hihat", label: "Hi-Hat", color: "bg-green-500", key: "C" },
+    { id: "tom", label: "Tom", color: "bg-yellow-500", key: "V" },
+    { id: "clap", label: "Clap", color: "bg-purple-500", key: "B" },
+    { id: "crash", label: "Crash", color: "bg-pink-500", key: "N" },
+    { id: "ride", label: "Ride", color: "bg-indigo-500", key: "M" },
+    { id: "cowbell", label: "Cowbell", color: "bg-orange-500", key: "L" },
   ];
 
-  type DrumKey =
-    | "kick"
-    | "snare"
-    | "hihat"
-    | "tom"
-    | "clap"
-    | "crash"
-    | "ride"
-    | "cowbell";
+  const playDrum = async (padId: DrumSound) => {
+    if (!drums) return;
 
-  const isDrumKey = (id: string): id is DrumKey =>
-    (
-      [
-        "kick",
-        "snare",
-        "hihat",
-        "tom",
-        "clap",
-        "crash",
-        "ride",
-        "cowbell",
-      ] as const
-    ).includes(id as DrumKey);
-
-  const playDrum = (padId: string) => {
-    if (isDrumKey(padId)) {
-      drums.playSound(padId);
-    }
+    await drums.playSound(padId);
     setActivePad(padId);
     setTimeout(() => setActivePad(null), 100);
   };
 
   // Handle keyboard shortcuts
-  React.useEffect(() => {
+  useEffect(() => {
+    if (!drums) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       const pad = drumPads.find(p => p.key === e.key.toUpperCase());
       if (pad) {
@@ -74,7 +53,7 @@ const DrumMachine: React.FC = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  });
+  }, [drumPads, drums, playDrum]);
 
   return (
     <div className="bg-gray-900 p-6 rounded-2xl border border-white/10">
@@ -86,10 +65,11 @@ const DrumMachine: React.FC = () => {
             key={pad.id}
             whileTap={{ scale: 0.95 }}
             onClick={() => playDrum(pad.id)}
+            disabled={!drums}
             className={`
               relative aspect-square rounded-xl flex flex-col items-center justify-center
               ${pad.color} ${activePad === pad.id ? "ring-4 ring-white/50" : ""}
-              hover:brightness-110 transition-all duration-150
+              hover:brightness-110 transition-all duration-150 disabled:opacity-50
             `}
           >
             <span className="text-white font-bold text-lg">{pad.label}</span>
@@ -97,26 +77,51 @@ const DrumMachine: React.FC = () => {
           </motion.button>
         ))}
       </div>
+
       <div className="mt-6">
         <h4 className="text-white/80 text-sm mb-2">Quick Patterns:</h4>
         <div className="flex gap-2">
           {[
-            { name: "Basic Beat", pattern: ["kick", "snare", "hihat"] },
-            { name: "Rock", pattern: ["kick", "snare", "crash"] },
-            { name: "Hip Hop", pattern: ["kick", "snare", "hihat", "clap"] },
+            {
+              name: "Basic Beat",
+              pattern: [
+                "kick" as DrumSound,
+                "snare" as DrumSound,
+                "hihat" as DrumSound,
+              ],
+            },
+            {
+              name: "Rock",
+              pattern: [
+                "kick" as DrumSound,
+                "snare" as DrumSound,
+                "crash" as DrumSound,
+              ],
+            },
+            {
+              name: "Hip Hop",
+              pattern: [
+                "kick" as DrumSound,
+                "snare" as DrumSound,
+                "hihat" as DrumSound,
+                "clap" as DrumSound,
+              ],
+            },
           ].map(pattern => (
             <button
               key={pattern.name}
-              onClick={() => {
-                pattern.pattern.forEach((sound, i) => {
-                  setTimeout(() => {
-                    if (isDrumKey(sound)) {
-                      drums.playSound(sound);
-                    }
+              onClick={async () => {
+                if (!drums) return;
+
+                for (let i = 0; i < pattern.pattern.length; i++) {
+                  const sound = pattern.pattern[i];
+                  setTimeout(async () => {
+                    await drums.playSound(sound);
                   }, i * 200);
-                });
+                }
               }}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm"
+              disabled={!drums}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm disabled:opacity-50"
             >
               {pattern.name}
             </button>

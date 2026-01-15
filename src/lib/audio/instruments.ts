@@ -1,12 +1,14 @@
-// type ToneType = typeof import("tone");
-type PolySynthType = import("tone").PolySynth;
-type ReverbType = import("tone").Reverb;
-type MembraneSynthType = import("tone").MembraneSynth;
-type NoiseSynthType = import("tone").NoiseSynth;
-type MetalSynthType = import("tone").MetalSynth;
-type SamplerType = import("tone").Sampler;
+import * as Tone from "tone";
 
-// Define InstrumentConfig locally if needed
+// --- Types ---
+type PolySynthType = Tone.PolySynth;
+type ReverbType = Tone.Reverb;
+type MembraneSynthType = Tone.MembraneSynth;
+type NoiseSynthType = Tone.NoiseSynth;
+type MetalSynthType = Tone.MetalSynth;
+
+export type PianoType = "grand" | "electric" | "synth" | "organ";
+
 export interface InstrumentConfig {
   volume?: number;
   attack?: number;
@@ -14,8 +16,7 @@ export interface InstrumentConfig {
   reverb?: number;
 }
 
-// At the bottom of instruments.ts, add:
-
+// --- Virtual Piano Class ---
 export class VirtualPiano {
   private synth: PolySynthType | null = null;
   private reverb: ReverbType | null = null;
@@ -24,83 +25,90 @@ export class VirtualPiano {
 
   constructor(config?: InstrumentConfig) {
     this.config = config;
-    // Don't initialize during SSR
-    if (typeof window === "undefined") return;
-    this.initialize();
+    if (typeof window !== "undefined") {
+      // Lazy init handled in methods
+    }
   }
 
   private async initialize(): Promise<void> {
-    if (this.isInitialized || typeof window === "undefined") return;
-
+    if (this.isInitialized) return;
     try {
-      const Tone = await import("tone");
+      await Tone.start();
 
       this.synth = new Tone.PolySynth(Tone.Synth, {
-        oscillator: {
-          type: "sine" as const,
-        },
+        oscillator: { type: "triangle" as const }, // Type assertion
         envelope: {
-          attack: this.config?.attack || 0.05,
+          attack: this.config?.attack || 0.02,
           decay: 0.1,
           sustain: 0.3,
           release: this.config?.release || 1,
         },
+        // maxPolyphony: 32,
       }).toDestination();
 
       this.reverb = new Tone.Reverb({
-        decay: this.config?.reverb || 3,
-        wet: 0.4,
-      });
+        decay: this.config?.reverb || 2,
+        wet: 0.3,
+      }).toDestination();
 
       this.synth.connect(this.reverb);
-      if (this.synth.volume && this.synth.volume.value !== undefined) {
-        this.synth.volume.value = this.config?.volume || -10;
-      }
-
       this.isInitialized = true;
     } catch (error) {
       console.error("Failed to initialize VirtualPiano:", error);
     }
   }
 
+  // New Method: Switch Piano Sounds
+  setInstrumentType(type: PianoType): void {
+    if (!this.synth) return;
+
+    switch (type) {
+      case "grand":
+        this.synth.set({ oscillator: { type: "triangle" as const } });
+        this.synth.set({ envelope: { attack: 0.02, release: 1 } });
+        break;
+      case "electric":
+        this.synth.set({ oscillator: { type: "sine" as const } });
+        this.synth.set({ envelope: { attack: 0.05, release: 0.5 } });
+        break;
+      case "synth":
+        this.synth.set({ oscillator: { type: "sawtooth" as const } });
+        this.synth.set({ envelope: { attack: 0.01, release: 0.3 } });
+        break;
+      case "organ":
+        this.synth.set({ oscillator: { type: "square" as const } });
+        this.synth.set({ envelope: { attack: 0.2, release: 0.1 } });
+        break;
+    }
+  }
+
   async playNote(note: string, duration: string = "8n"): Promise<void> {
-    if (!this.isInitialized) {
-      await this.initialize();
-    }
-
-    if (this.synth) {
-      this.synth.triggerAttackRelease(note, duration);
-    }
-  }
-
-  async playChord(notes: string[], duration: string = "8n"): Promise<void> {
-    if (!this.isInitialized) {
-      await this.initialize();
-    }
-
-    if (this.synth) {
-      this.synth.triggerAttackRelease(notes, duration);
-    }
-  }
-
-  setVolume(volume: number): void {
-    if (this.synth?.volume && this.synth.volume.value !== undefined) {
-      this.synth.volume.value = volume;
-    }
+    if (!this.isInitialized) await this.initialize();
+    this.synth?.triggerAttackRelease(note, duration);
   }
 }
 
+// --- Drum Machine Class ---
 export class DrumMachine {
+  // Added missing types for the new instruments
   private drumSynths: {
     kick: MembraneSynthType | null;
     snare: NoiseSynthType | null;
     hihat: MetalSynthType | null;
     tom: MembraneSynthType | null;
+    clap: NoiseSynthType | null; // NEW
+    crash: MetalSynthType | null; // NEW
+    ride: MetalSynthType | null; // NEW
+    cowbell: MetalSynthType | null; // NEW
   } = {
     kick: null,
     snare: null,
     hihat: null,
     tom: null,
+    clap: null,
+    crash: null,
+    ride: null,
+    cowbell: null,
   };
 
   private isInitialized = false;
@@ -111,30 +119,62 @@ export class DrumMachine {
   }
 
   private async initialize(): Promise<void> {
-    if (this.isInitialized || typeof window === "undefined") return;
-
+    if (this.isInitialized) return;
     try {
-      const Tone = await import("tone");
+      await Tone.start();
 
-      this.drumSynths = {
-        kick: new Tone.MembraneSynth().toDestination(),
-        snare: new Tone.NoiseSynth({
-          noise: { type: "white" as const },
-          envelope: { attack: 0.005, decay: 0.1 },
-        }).toDestination(),
-        hihat: new Tone.MetalSynth({
-          envelope: { attack: 0.001, decay: 0.1 },
-          harmonicity: 5.1,
-          modulationIndex: 32,
-          resonance: 4000,
-          octaves: 1.5,
-        }).toDestination(),
-        tom: new Tone.MembraneSynth({
-          pitchDecay: 0.05,
-          octaves: 4,
-          oscillator: { type: "sine" as const },
-        }).toDestination(),
-      };
+      // Existing
+      this.drumSynths.kick = new Tone.MembraneSynth().toDestination();
+      this.drumSynths.snare = new Tone.NoiseSynth({
+        noise: { type: "white" as const },
+        envelope: { attack: 0.005, decay: 0.1 },
+      }).toDestination();
+      this.drumSynths.hihat = new Tone.MetalSynth({
+        envelope: { attack: 0.001, decay: 0.1 },
+        harmonicity: 5.1,
+        modulationIndex: 32,
+        resonance: 4000,
+        octaves: 1.5,
+      }).toDestination();
+      this.drumSynths.tom = new Tone.MembraneSynth({
+        pitchDecay: 0.05,
+        octaves: 4,
+        oscillator: { type: "sine" as const },
+      }).toDestination();
+
+      // NEW: Fix for missing sounds
+      this.drumSynths.clap = new Tone.NoiseSynth({
+        noise: { type: "pink" as const },
+        envelope: { attack: 0.001, decay: 0.3, sustain: 0 },
+      }).toDestination();
+
+      this.drumSynths.crash = new Tone.MetalSynth({
+       
+        envelope: { attack: 0.001, decay: 1, release: 0.01 },
+        harmonicity: 5.1,
+        modulationIndex: 64,
+        resonance: 4000,
+        octaves: 1.5,
+      }).toDestination();
+      this.drumSynths.crash.volume.value = -10; // Lower volume for crash
+
+      this.drumSynths.ride = new Tone.MetalSynth({
+       
+        envelope: { attack: 0.001, decay: 0.5, release: 0.01 },
+        harmonicity: 5.1,
+        modulationIndex: 32,
+        resonance: 4000,
+        octaves: 1.5,
+      }).toDestination();
+
+      this.drumSynths.cowbell = new Tone.MetalSynth({
+        
+        envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
+        harmonicity: 5.1,
+        modulationIndex: 32,
+        resonance: 4000,
+        octaves: 1.5,
+      }).toDestination();
 
       this.isInitialized = true;
     } catch (error) {
@@ -142,142 +182,76 @@ export class DrumMachine {
     }
   }
 
-  async playSound(sound: "kick" | "snare" | "hihat" | "tom"): Promise<void> {
-    if (!this.isInitialized) {
-      await this.initialize();
-    }
+  async playSound(sound: string): Promise<void> {
+    if (!this.isInitialized) await this.initialize();
 
-    const synth = this.drumSynths[sound];
-    if (!synth) return;
-
+    // Map string ID to specific synth trigger
     switch (sound) {
       case "kick":
-        (synth as MembraneSynthType).triggerAttackRelease("C1", "8n");
+        this.drumSynths.kick?.triggerAttackRelease("C1", "8n");
         break;
       case "snare":
-        (synth as NoiseSynthType).triggerAttackRelease("8n");
+        this.drumSynths.snare?.triggerAttackRelease("8n");
         break;
       case "hihat":
-        (synth as MetalSynthType).triggerAttackRelease("C5", "32n");
+        this.drumSynths.hihat?.triggerAttackRelease("C5", "32n"); // Added note
         break;
       case "tom":
-        (synth as MembraneSynthType).triggerAttackRelease("G2", "8n");
+        this.drumSynths.tom?.triggerAttackRelease("G2", "8n");
         break;
+      // NEW CASES - Added frequencies for MetalSynth
+      case "clap":
+        this.drumSynths.clap?.triggerAttackRelease("8n");
+        break;
+      case "crash":
+        this.drumSynths.crash?.triggerAttackRelease("C6", "1n"); // Added note
+        break;
+      case "ride":
+        this.drumSynths.ride?.triggerAttackRelease("C5", "16n"); // Added note
+        break;
+      case "cowbell":
+        this.drumSynths.cowbell?.triggerAttackRelease("C7", "16n"); // Added note
+        break;
+      default:
+        console.warn(`Unknown drum sound: ${sound}`);
     }
   }
 }
 
-export class Guitar {
-  private synth: SamplerType | null = null;
-  private isInitialized = false;
+// Define a type for drum sounds
+export type DrumSound =
+  | "kick"
+  | "snare"
+  | "hihat"
+  | "tom"
+  | "clap"
+  | "crash"
+  | "ride"
+  | "cowbell";
 
-  constructor() {
-    if (typeof window === "undefined") return;
-    this.initialize();
-  }
-
-  private async initialize(): Promise<void> {
-    if (this.isInitialized || typeof window === "undefined") return;
-
-    try {
-      const Tone = await import("tone");
-
-      this.synth = new Tone.Sampler({
-        urls: {
-          C3: "C3.mp3",
-          "D#3": "Ds3.mp3",
-          "F#3": "Fs3.mp3",
-          A3: "A3.mp3",
-        },
-        baseUrl: "/samples/guitar/",
-        onload: () => {
-          console.log("Guitar samples loaded");
-        },
-      }).toDestination();
-
-      this.isInitialized = true;
-    } catch (error) {
-      console.error("Failed to initialize Guitar:", error);
-    }
-  }
-
-  async playChord(chord: string): Promise<void> {
-    if (!this.isInitialized) {
-      await this.initialize();
-    }
-
-    const chordMap: Record<string, string[]> = {
-      C: ["C3", "E3", "G3"],
-      G: ["G3", "B3", "D4"],
-      D: ["D3", "F#3", "A3"],
-      A: ["A3", "C#4", "E4"],
-      E: ["E3", "G#3", "B3"],
-    };
-
-    const notes = chordMap[chord] || ["C3", "E3", "G3"];
-
-    if (this.synth) {
-      this.synth.triggerAttackRelease(notes, "1n");
-    }
-  }
-
-  async playNote(note: string): Promise<void> {
-    if (!this.isInitialized) {
-      await this.initialize();
-    }
-
-    if (this.synth) {
-      this.synth.triggerAttackRelease(note, "8n");
-    }
-  }
-}
-
-// Factory functions to get instrument instances (singleton pattern)
+// --- Singleton Factories ---
 let pianoInstance: VirtualPiano | null = null;
 let drumsInstance: DrumMachine | null = null;
-let guitarInstance: Guitar | null = null;
 
 export const getPiano = (config?: InstrumentConfig): VirtualPiano => {
   if (typeof window === "undefined") {
-    // Return a dummy instance for SSR
+    // Return a mock for SSR
     return {
-      playNote: async () => {},
-      playChord: async () => {},
-      setVolume: () => {},
+      playNote: async () => { },
+      setInstrumentType: () => { },
     } as unknown as VirtualPiano;
   }
-
-  if (!pianoInstance) {
-    pianoInstance = new VirtualPiano(config);
-  }
+  if (!pianoInstance) pianoInstance = new VirtualPiano(config);
   return pianoInstance;
 };
 
 export const getDrums = (): DrumMachine => {
   if (typeof window === "undefined") {
-    // Return a dummy instance for SSR
+    // Return a mock for SSR
     return {
-      playSound: async () => {},
+      playSound: async () => { },
     } as unknown as DrumMachine;
   }
-
-  if (!drumsInstance) {
-    drumsInstance = new DrumMachine();
-  }
+  if (!drumsInstance) drumsInstance = new DrumMachine();
   return drumsInstance;
-};
-
-export const getGuitar = (): Guitar => {
-  if (typeof window === "undefined") {
-    // Return a dummy instance for SSR
-    return {
-      playChord: async () => {},
-      playNote: async () => {},
-    } as unknown as Guitar;
-  }
-
-  if (!guitarInstance) {
-    guitarInstance = new Guitar();
-  }
-  return guitarInstance;
 };
