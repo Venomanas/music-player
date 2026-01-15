@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import EnhancedAudioPlayer from "@/src/components/player/EnhancedAudioPlayer";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,7 +31,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <div className="min-h-screen text-white">
-            {children}
+            {children}<SpeedInsights />
             <EnhancedAudioPlayer />
             <Toaster
               position="bottom-right"
@@ -43,6 +44,7 @@ export default function RootLayout({
               }}
             />
           </div>
+          
         </ThemeProvider>
       </body>
     </html>
