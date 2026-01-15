@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AudioTrack } from "@/src/lib/audio/player";
+import { supabase } from "@/src/lib/supabase/client";
 
 export interface Playlist {
   id: string;
@@ -20,7 +22,13 @@ export interface AudioTracks {
   genre: string; // Changed from optional to required
   bpm?: number;
 }
-
+export interface StudioMix {
+  id: string;
+  name: string;
+  bpm: number;
+  gridData: Record<string, boolean[]>; // The sequencer pattern
+  createdAt: Date;
+}
 export interface AppState {
   // Player state
   currentTrack: AudioTrack | null;
@@ -35,12 +43,16 @@ export interface AppState {
   playlists: Playlist[];
   likedTracks: AudioTrack[];
   recentTracks: AudioTrack[];
+  mixes: StudioMix[]; // NEW: Store for saved studio beats
 
   // UI state
   sidebarOpen: boolean;
   currentView: "home" | "library" | "search" | "studio";
   selectedCategory: string;
 
+  // NEW: Loading state
+  isLoading: boolean;
+  fetchLibrary: () => Promise<void>;
   // Actions
   setCurrentTrack: (track: AudioTrack | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
@@ -62,6 +74,9 @@ export interface AppState {
   toggleSidebar: () => void;
   setCurrentView: (view: "home" | "library" | "search" | "studio") => void;
   setSelectedCategory: (category: string) => void;
+
+  saveMix: (mix: StudioMix) => void;
+  deleteMix: (id: string) => void;
 }
 
 const initialTracks: AudioTrack[] = [
@@ -119,101 +134,174 @@ const initialTracks: AudioTrack[] = [
 
 export const usePlayerStore = create<AppState>()(
   persist(
-    (set) => ({
-      // Initial state
-      currentTrack: null,
-      isPlaying: false,
-      volume: 70,
-      progress: 0,
-      queue: [],
-      repeat: "none",
-      shuffle: false,
+    set => {
+      return {
+        // Initial state
 
-      playlists: [],
-      likedTracks: [],
-      recentTracks: initialTracks.slice(0, 3),
+        currentTrack: null,
+        isPlaying: false,
+        volume: 70,
+        progress: 0,
+        queue: [],
+        repeat: "none",
+        shuffle: false,
+        playlists: [],
+        likedTracks: [],
+        recentTracks: initialTracks.slice(0, 3),
+        sidebarOpen: false,
+        currentView: "home",
+        selectedCategory: "all",
+        isLoading: false,
+        mixes: [],
 
-      sidebarOpen: false,
-      currentView: "home",
-      selectedCategory: "all",
+        // --- NEW: Fetch Real Data ---
+        fetchLibrary: async () => {
+          set({ isLoading: true });
 
-      // Actions
-      setCurrentTrack: track => set({ currentTrack: track }),
-      setIsPlaying: isPlaying => set({ isPlaying }),
-      setVolume: volume => set({ volume }),
-      setProgress: progress => set({ progress }),
+          // 1. Fetch Songs for the "Home" view
+          const { data: songs, error: songError } = await supabase
+            .from("songs")
+            .select("*")
+            .limit(20);
 
-      addToQueue: track => set(state => ({ queue: [...state.queue, track] })),
+          if (songError) console.error("Error fetching songs:", songError);
 
-      clearQueue: () => set({ queue: [] }),
+          // 2. Fetch User Playlists (if logged in)
+          // Note: You need to handle auth user checking in a real app component
+          // For now, we just fetch what's available or public
 
-      toggleRepeat: () =>
-        set(state => ({
-          repeat:
-            state.repeat === "none"
-              ? "one"
-              : state.repeat === "one"
-              ? "all"
-              : "none",
-        })),
+          // Map DB structure to App structure
+          const mappedSongs: AudioTrack[] = (songs || []).map(song => ({
+            id: song.id,
+            title: song.title,
+            artist: song.artist,
+            url: song.url,
+            duration: song.duration || 0,
+            coverUrl: song.cover_url || "/default-cover.jpg",
+            genre: song.genre || "unknown",
+          }));
 
-      toggleShuffle: () => set(state => ({ shuffle: !state.shuffle })),
+          set({
+            // If you want to replace the hardcoded "initialTracks" with DB data:
+            // recentTracks: mappedSongs.slice(0, 5),
+            isLoading: false,
+          });
+        },
 
-      createPlaylist: (name, description) =>
-        set(state => ({
-          playlists: [
-            ...state.playlists,
-            {
-              id: Date.now().toString(),
-              name,
-              description,
-              tracks: [],
-              createdAt: new Date(),
-            },
-          ],
-        })),
+        // Actions
+        setCurrentTrack: track => set({ currentTrack: track }),
+        setIsPlaying: isPlaying => set({ isPlaying }),
+        setVolume: volume => set({ volume }),
+        setProgress: progress => set({ progress }),
 
-      addToPlaylist: (playlistId, track) =>
-        set(state => ({
-          playlists: state.playlists.map(playlist =>
-            playlist.id === playlistId
-              ? { ...playlist, tracks: [...playlist.tracks, track] }
-              : playlist
-          ),
-        })),
+        addToQueue: track => set(state => ({ queue: [...state.queue, track] })),
 
-      removeFromPlaylist: (playlistId, trackId) =>
-        set(state => ({
-          playlists: state.playlists.map(playlist =>
-            playlist.id === playlistId
-              ? {
-                  ...playlist,
-                  tracks: playlist.tracks.filter(t => t.id !== trackId),
-                }
-              : playlist
-          ),
-        })),
+        clearQueue: () => set({ queue: [] }),
 
-      deletePlaylist: playlistId =>
-        set(state => ({
-          playlists: state.playlists.filter(p => p.id !== playlistId),
-        })),
+        toggleRepeat: () =>
+          set(state => ({
+            repeat:
+              state.repeat === "none"
+                ? "one"
+                : state.repeat === "one"
+                ? "all"
+                : "none",
+          })),
 
-      toggleLikeTrack: track =>
-        set(state => {
-          const isLiked = state.likedTracks.some(t => t.id === track.id);
-          return {
-            likedTracks: isLiked
-              ? state.likedTracks.filter(t => t.id !== track.id)
-              : [...state.likedTracks, track],
+        toggleShuffle: () => set(state => ({ shuffle: !state.shuffle })),
+
+        // Updated Create Playlist (Optimistic UI + DB Insert)
+        createPlaylist: async (name, description) => {
+          // 1. Optimistic Update
+          const tempId = Date.now().toString();
+          const newPlaylist = {
+            id: tempId,
+            name,
+            description,
+            tracks: [],
+            createdAt: new Date(),
           };
-        }),
 
-      toggleSidebar: () => set(state => ({ sidebarOpen: !state.sidebarOpen })),
+          set(state => ({ playlists: [...state.playlists, newPlaylist] }));
 
-      setCurrentView: view => set({ currentView: view }),
-      setSelectedCategory: category => set({ selectedCategory: category }),
-    }),
+          // 2. DB Insert
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) return; // Guard clause if not logged in
+
+          const { data, error } = await supabase
+            .from("playlists")
+            .insert({ user_id: user.id, name, description })
+            .select()
+            .single();
+
+          if (error) {
+            console.error("Failed to create playlist:", error);
+            // Revert state if needed
+          } else if (data) {
+            // Update the temporary ID with real DB ID
+            set(state => ({
+              playlists: state.playlists.map(p =>
+                p.id === tempId ? { ...p, id: data.id } : p
+              ),
+            }));
+          }
+        },
+
+        addToPlaylist: (playlistId, track) =>
+          set(state => ({
+            playlists: state.playlists.map(playlist =>
+              playlist.id === playlistId
+                ? { ...playlist, tracks: [...playlist.tracks, track] }
+                : playlist
+            ),
+          })),
+
+        removeFromPlaylist: (playlistId, trackId) =>
+          set(state => ({
+            playlists: state.playlists.map(playlist =>
+              playlist.id === playlistId
+                ? {
+                    ...playlist,
+                    tracks: playlist.tracks.filter(t => t.id !== trackId),
+                  }
+                : playlist
+            ),
+          })),
+
+        deletePlaylist: playlistId =>
+          set(state => ({
+            playlists: state.playlists.filter(p => p.id !== playlistId),
+          })),
+
+        toggleLikeTrack: track =>
+          set(state => {
+            const isLiked = state.likedTracks.some(t => t.id === track.id);
+            return {
+              likedTracks: isLiked
+                ? state.likedTracks.filter(t => t.id !== track.id)
+                : [...state.likedTracks, track],
+            };
+          }),
+
+        toggleSidebar: () =>
+          set(state => ({ sidebarOpen: !state.sidebarOpen })),
+
+        setCurrentView: view => set({ currentView: view }),
+        setSelectedCategory: category => set({ selectedCategory: category }),
+
+        saveMix: mix =>
+          set(state => ({
+            mixes: [...state.mixes, mix],
+          })),
+
+        deleteMix: id =>
+          set(state => ({
+            mixes: state.mixes.filter(m => m.id !== id),
+          })),
+      };
+    },
     {
       name: "music-player-storage",
       partialize: state => ({

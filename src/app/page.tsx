@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState , useEffect } from "react";
 import { motion } from "framer-motion";
 import { Music, Headphones, Guitar, Drum } from "lucide-react";
 import PianoKeyboard from "@/src/components/studio/PianoKeyboard";
@@ -8,9 +8,17 @@ import DrumMachine from "@/src/components/studio/DrumMachine";
 import MixerBoard from "@/src/components/studio/MixerBoard";
 import MusicLibrary from "@/src/components/player/musicLibrary"; 
 import Sequencer from "@/src/components/studio/Sequencer";
+import { usePlayerStore } from "@/src/lib/store/playerStore";
+import { User } from "lucide-react";
+import Link from "next/link";
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"stream" | "studio">("stream");
+  const { fetchLibrary } = usePlayerStore();
+
+  useEffect(() => {
+    fetchLibrary();
+  }, [fetchLibrary]);
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -51,8 +59,15 @@ export default function HomePage() {
                 <span>Studio</span>
               </div>
             </button>
-          </div>
+          {/* Add this button */}
+          <Link href="/dashboard">
+            <button className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
+              <User className="w-5 h-5" />
+            </button>
+          </Link>
         </div>
+          </div>
+          
 
         <p className="text-white/70 mt-4">
           {activeTab === "stream"
