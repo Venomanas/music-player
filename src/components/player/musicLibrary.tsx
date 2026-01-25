@@ -32,6 +32,39 @@ type MusicTrack = {
   playCount?: number;
 };
 
+// Component for image with fallback
+const TrackImage: React.FC<{
+  src?: string;
+  alt: string;
+  size: number;
+  className?: string;
+}> = ({ src, alt, size, className = "" }) => {
+  const [error, setError] = useState(false);
+
+  if (!src || error) {
+    return (
+      <div
+        className={`bg-linear-to-br from-purple-600 to-pink-600 flex items-center justify-center ${className}`}
+      >
+        <Music className="w-1/2 h-1/2 text-white/30" />
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      width={size}
+      height={size}
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setError(true)}
+      loading="lazy"
+      unoptimized // Use this to bypass Next.js image optimization if external URLs are problematic
+    />
+  );
+};
+
 const MusicLibrary: React.FC = () => {
   const {
     recentTracks,
@@ -93,8 +126,7 @@ const MusicLibrary: React.FC = () => {
       album: "Chill Beats Vol. 1",
       duration: 168,
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-      coverUrl:
-        "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300&h=300&fit=crop",
+      coverUrl: "https://picsum.photos/seed/music1/300/300",
       genre: "chill",
       liked: false,
       playCount: 1245,
@@ -106,8 +138,7 @@ const MusicLibrary: React.FC = () => {
       album: "Night Sounds",
       duration: 195,
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-      coverUrl:
-        "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
+      coverUrl: "https://picsum.photos/seed/music2/300/300",
       genre: "chill",
       liked: true,
       playCount: 892,
@@ -119,8 +150,7 @@ const MusicLibrary: React.FC = () => {
       album: "Electronic Vibes",
       duration: 262,
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-      coverUrl:
-        "https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=300&h=300&fit=crop",
+      coverUrl: "https://picsum.photos/seed/music3/300/300",
       genre: "electronic",
       liked: false,
       playCount: 1567,
@@ -132,8 +162,7 @@ const MusicLibrary: React.FC = () => {
       album: "Future Sounds",
       duration: 225,
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-      coverUrl:
-        "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=300&h=300&fit=crop",
+      coverUrl: "https://picsum.photos/seed/music4/300/300",
       genre: "electronic",
       liked: true,
       playCount: 2103,
@@ -145,8 +174,7 @@ const MusicLibrary: React.FC = () => {
       album: "Quiet Moments",
       duration: 210,
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-      coverUrl:
-        "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&h=300&fit=crop",
+      coverUrl: "https://picsum.photos/seed/music5/300/300",
       genre: "acoustic",
       liked: false,
       playCount: 756,
@@ -158,8 +186,7 @@ const MusicLibrary: React.FC = () => {
       album: "City Nights",
       duration: 245,
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-      coverUrl:
-        "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&h=300&fit=crop",
+      coverUrl: "https://picsum.photos/seed/music6/300/300",
       genre: "jazz",
       liked: false,
       playCount: 943,
@@ -171,8 +198,7 @@ const MusicLibrary: React.FC = () => {
       album: "World Traveler",
       duration: 198,
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-      coverUrl:
-        "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&h=300&fit=crop",
+      coverUrl: "https://picsum.photos/seed/music7/300/300",
       genre: "world",
       liked: true,
       playCount: 1124,
@@ -184,8 +210,7 @@ const MusicLibrary: React.FC = () => {
       album: "Calm Nature",
       duration: 315,
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-      coverUrl:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=300&fit=crop",
+      coverUrl: "https://picsum.photos/seed/music8/300/300",
       genre: "ambient",
       liked: false,
       playCount: 1876,
@@ -260,7 +285,7 @@ const MusicLibrary: React.FC = () => {
         )}
       </div>
 
-      {/* Categories - Horizontal Scroll */}
+      {/* Categories */}
       <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
         <div className="flex gap-2 pb-2 min-w-max">
           {categories.map(category => (
@@ -284,7 +309,7 @@ const MusicLibrary: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats - Responsive Grid */}
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <div className="bg-linear-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-xl md:rounded-2xl border border-white/10">
           <div className="flex items-center justify-between">
@@ -319,7 +344,7 @@ const MusicLibrary: React.FC = () => {
         </div>
       </div>
 
-      {/* Music Tracks - Responsive Layout */}
+      {/* Music Tracks */}
       <div className="bg-white/5 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/10 overflow-hidden">
         <div className="p-4 md:p-6">
           <h3 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-4">
@@ -332,7 +357,7 @@ const MusicLibrary: React.FC = () => {
           </h3>
         </div>
 
-        {/* Desktop Table View - Hidden on Mobile */}
+        {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -391,11 +416,10 @@ const MusicLibrary: React.FC = () => {
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                        <Image
-                          width={48}
-                          height={48}
+                        <TrackImage
                           src={track.coverUrl}
                           alt={track.title}
+                          size={48}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -471,11 +495,10 @@ const MusicLibrary: React.FC = () => {
                 onClick={() => handlePlayTrack(track)}
                 className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0"
               >
-                <Image
-                  width={48}
-                  height={48}
+                <TrackImage
                   src={track.coverUrl}
                   alt={track.title}
+                  size={48}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -544,11 +567,10 @@ const MusicLibrary: React.FC = () => {
                 }}
               >
                 <div className="relative aspect-square rounded-lg md:rounded-xl overflow-hidden mb-3 md:mb-4">
-                  <Image
+                  <TrackImage
                     src={track.coverUrl}
                     alt={track.title}
-                    width={200}
-                    height={200}
+                    size={200}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
