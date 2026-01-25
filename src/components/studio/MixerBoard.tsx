@@ -44,7 +44,7 @@ const MixerBoard: React.FC = () => {
               <div className="my-4">
                 <div className="h-40 w-6 bg-gray-700 rounded-lg mx-auto relative">
                   <div
-                    className="absolute bottom-0 w-full bg-linear-to-t from-purple-500 to-pink-500 rounded-lg transition-all"
+                    className="absolute bottom-0 w-full bg-linear-to-t from-[#f31b1b] to-[#FF0087] rounded-lg transition-all"
                     style={{ height: `${track.volume}%` }}
                   />
                   <input
@@ -83,8 +83,8 @@ const MixerBoard: React.FC = () => {
                   {track.pan > 0
                     ? `R ${track.pan}`
                     : track.pan < 0
-                    ? `L ${-track.pan}`
-                    : "C"}
+                      ? `L ${-track.pan}`
+                      : "C"}
                 </div>
               </div>
 

@@ -46,7 +46,6 @@ const MusicLibrary: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Mock data for music library
   const categories = [
     {
       id: "all",
@@ -202,10 +201,10 @@ const MusicLibrary: React.FC = () => {
       setIsPlaying(true);
     } else {
       if (!track.audioUrl) {
-        // don't try to play tracks without a valid audio URL
         console.warn("Attempted to play a track without an audio URL:", track);
         return;
       }
+
       const audioTrack = createAudioTrack({
         id: track.id,
         title: track.title,
@@ -213,8 +212,9 @@ const MusicLibrary: React.FC = () => {
         url: track.audioUrl,
         duration: track.duration || 0,
         coverUrl: track.coverUrl || "",
-        genre: track.genre || "unknown", // Provide default value
+        genre: track.genre || "unknown",
       });
+
       setCurrentTrack(audioTrack);
       audioPlayer.play(audioTrack);
       setIsPlaying(true);
@@ -239,7 +239,7 @@ const MusicLibrary: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Search Bar */}
       <div className="relative">
         <input
@@ -247,28 +247,28 @@ const MusicLibrary: React.FC = () => {
           placeholder="Search songs, artists, or albums..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full px-12 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="w-full px-10 md:px-12 py-3 md:py-4 bg-white/5 border border-white/10 rounded-xl md:rounded-2xl text-white text-sm md:text-base placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
         />
-        <Music className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+        <Music className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-white/40" />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
+            className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white text-lg"
           >
             ✕
           </button>
         )}
       </div>
 
-      {/* Categories */}
-      <div className="overflow-x-auto">
-        <div className="flex gap-2 pb-4 min-w-max">
+      {/* Categories - Horizontal Scroll */}
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+        <div className="flex gap-2 pb-2 min-w-max">
           {categories.map(category => (
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
               className={`
-                flex items-center gap-2 px-4 py-3 rounded-xl whitespace-nowrap transition-all
+                flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl whitespace-nowrap transition-all text-sm md:text-base
                 ${
                   selectedCategory === category.id
                     ? "bg-linear-to-r from-purple-600 to-pink-600 text-white shadow-lg"
@@ -284,43 +284,45 @@ const MusicLibrary: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-linear-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-2xl border border-white/10">
+      {/* Stats - Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        <div className="bg-linear-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-xl md:rounded-2xl border border-white/10">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white/60 text-sm">Total Tracks</p>
-              <p className="text-2xl font-bold text-white">150</p>
+              <p className="text-white/60 text-xs md:text-sm">Total Tracks</p>
+              <p className="text-xl md:text-2xl font-bold text-white">150</p>
             </div>
-            <Music className="w-8 h-8 text-purple-400" />
+            <Music className="w-6 h-6 md:w-8 md:h-8 text-purple-400" />
           </div>
         </div>
-        <div className="bg-linear-to-r from-blue-500/20 to-teal-500/20 p-4 rounded-2xl border border-white/10">
+        <div className="bg-linear-to-r from-blue-500/20 to-teal-500/20 p-4 rounded-xl md:rounded-2xl border border-white/10">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white/60 text-sm">Listening Time</p>
-              <p className="text-2xl font-bold text-white">48h 22m</p>
+              <p className="text-white/60 text-xs md:text-sm">Listening Time</p>
+              <p className="text-xl md:text-2xl font-bold text-white">
+                48h 22m
+              </p>
             </div>
-            <Clock className="w-8 h-8 text-blue-400" />
+            <Clock className="w-6 h-6 md:w-8 md:h-8 text-blue-400" />
           </div>
         </div>
-        <div className="bg-linear-to-r from-green-500/20 to-emerald-500/20 p-4 rounded-2xl border border-white/10">
+        <div className="bg-linear-to-r from-green-500/20 to-emerald-500/20 p-4 rounded-xl md:rounded-2xl border border-white/10 sm:col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white/60 text-sm">Liked Songs</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-white/60 text-xs md:text-sm">Liked Songs</p>
+              <p className="text-xl md:text-2xl font-bold text-white">
                 {likedTracks.length}
               </p>
             </div>
-            <Heart className="w-8 h-8 text-green-400 fill-green-400" />
+            <Heart className="w-6 h-6 md:w-8 md:h-8 text-green-400 fill-green-400" />
           </div>
         </div>
       </div>
 
-      {/* Music Tracks Table */}
-      <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
-        <div className="p-6">
-          <h3 className="text-xl font-bold text-white mb-4">
+      {/* Music Tracks - Responsive Layout */}
+      <div className="bg-white/5 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/10 overflow-hidden">
+        <div className="p-4 md:p-6">
+          <h3 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-4">
             {selectedCategory === "all"
               ? "All Tracks"
               : categories.find(c => c.id === selectedCategory)?.name}
@@ -330,24 +332,27 @@ const MusicLibrary: React.FC = () => {
           </h3>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View - Hidden on Mobile */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left p-4 text-white/60 font-medium">#</th>
-                <th className="text-left p-4 text-white/60 font-medium">
+                <th className="text-left p-4 text-white/60 font-medium text-sm">
+                  #
+                </th>
+                <th className="text-left p-4 text-white/60 font-medium text-sm">
                   Title
                 </th>
-                <th className="text-left p-4 text-white/60 font-medium">
+                <th className="text-left p-4 text-white/60 font-medium text-sm">
                   Album
                 </th>
-                <th className="text-left p-4 text-white/60 font-medium">
+                <th className="text-left p-4 text-white/60 font-medium text-sm">
                   <Clock className="w-4 h-4 inline" />
                 </th>
-                <th className="text-left p-4 text-white/60 font-medium">
+                <th className="text-left p-4 text-white/60 font-medium text-sm">
                   Plays
                 </th>
-                <th className="text-left p-4 text-white/60 font-medium"></th>
+                <th className="text-left p-4 text-white/60 font-medium text-sm"></th>
               </tr>
             </thead>
             <tbody>
@@ -364,7 +369,7 @@ const MusicLibrary: React.FC = () => {
                       {currentTrack?.id === track.id && isPlaying ? (
                         <button
                           onClick={() => handlePlayTrack(track)}
-                          className="absolute inset-0 flex items-center justify-center bg-purple-600 rounded-full"
+                          className="absolute inset-0 flex items-center justify-center bg-pink-600 rounded-full"
                         >
                           <Pause className="w-3 h-3 text-white" />
                         </button>
@@ -375,7 +380,7 @@ const MusicLibrary: React.FC = () => {
                           </span>
                           <button
                             onClick={() => handlePlayTrack(track)}
-                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-purple-600 rounded-full hover:bg-purple-500 transition-all"
+                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-pink-600 rounded-full hover:bg-pink-700 transition-all"
                           >
                             <Play className="w-3 h-3 text-white ml-0.5" />
                           </button>
@@ -387,15 +392,15 @@ const MusicLibrary: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
                         <Image
-                        width={100}
-                        height={100}
+                          width={48}
+                          height={48}
                           src={track.coverUrl}
                           alt={track.title}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div>
-                        <div className="font-medium text-white group-hover:text-purple-300 transition-colors">
+                        <div className="font-medium text-white group-hover:text-pink-400 transition-colors">
                           {track.title}
                         </div>
                         <div className="text-sm text-white/60">
@@ -405,15 +410,15 @@ const MusicLibrary: React.FC = () => {
                     </div>
                   </td>
                   <td className="p-4">
-                    <div className="text-white/80">{track.album}</div>
+                    <div className="text-white/80 text-sm">{track.album}</div>
                   </td>
                   <td className="p-4">
-                    <div className="text-white/60">
+                    <div className="text-white/60 text-sm">
                       {formatDuration(track.duration)}
                     </div>
                   </td>
                   <td className="p-4">
-                    <div className="text-white/60">
+                    <div className="text-white/60 text-sm">
                       {track.playCount.toLocaleString()}
                     </div>
                   </td>
@@ -451,48 +456,117 @@ const MusicLibrary: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-2 p-4">
+          {filteredTracks.map((track, index) => (
+            <motion.div
+              key={track.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10 active:bg-white/10 transition-colors"
+            >
+              <button
+                onClick={() => handlePlayTrack(track)}
+                className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0"
+              >
+                <Image
+                  width={48}
+                  height={48}
+                  src={track.coverUrl}
+                  alt={track.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  {currentTrack?.id === track.id && isPlaying ? (
+                    <Pause className="w-5 h-5 text-white" fill="currentColor" />
+                  ) : (
+                    <Play
+                      className="w-5 h-5 text-white ml-0.5"
+                      fill="currentColor"
+                    />
+                  )}
+                </div>
+              </button>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-white truncate text-sm">
+                  {track.title}
+                </h4>
+                <p className="text-xs text-white/60 truncate">{track.artist}</p>
+                <div className="flex items-center gap-2 text-xs text-white/40 mt-1">
+                  <span>{formatDuration(track.duration)}</span>
+                  <span>•</span>
+                  <span>{track.playCount.toLocaleString()} plays</span>
+                </div>
+              </div>
+              <button
+                onClick={() =>
+                  toggleLikeTrack({
+                    id: track.id,
+                    title: track.title,
+                    artist: track.artist,
+                    url: track.audioUrl,
+                    duration: track.duration,
+                    coverUrl: track.coverUrl || "",
+                    genre: track.genre || "unknown",
+                  })
+                }
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <Heart
+                  className={`w-5 h-5 ${
+                    track.liked ? "fill-red-500 text-red-500" : "text-white/60"
+                  }`}
+                />
+              </button>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       {/* Recently Played */}
       {recentTracks.length > 0 && (
         <div>
-          <h3 className="text-xl font-bold text-white mb-4">Recently Played</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 px-4 md:px-0">
+            Recently Played
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {recentTracks.map(track => (
               <motion.div
                 key={track.id}
                 whileHover={{ y: -5 }}
-                className="bg-white/5 hover:bg-white/10 rounded-2xl p-4 transition-all cursor-pointer group"
+                className="bg-white/5 hover:bg-white/10 rounded-xl md:rounded-2xl p-3 md:p-4 transition-all cursor-pointer group"
                 onClick={() => {
                   setCurrentTrack(track);
                   audioPlayer.play(track);
                   setIsPlaying(true);
                 }}
               >
-                <div className="relative aspect-square rounded-xl overflow-hidden mb-4">
+                <div className="relative aspect-square rounded-lg md:rounded-xl overflow-hidden mb-3 md:mb-4">
                   <Image
                     src={track.coverUrl}
                     alt={track.title}
-                    width={100}
-                    height={100}
+                    width={200}
+                    height={200}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <button className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute bottom-2 md:bottom-3 left-2 md:left-3 right-2 md:right-3">
+                    <button className="w-8 h-8 md:w-10 md:h-10 bg-purple-600 rounded-full flex items-center justify-center ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                       {currentTrack?.id === track.id && isPlaying ? (
-                        <Pause className="w-4 h-4 text-white" />
+                        <Pause className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       ) : (
-                        <Play className="w-4 h-4 text-white ml-0.5" />
+                        <Play className="w-3 h-3 md:w-4 md:h-4 text-white ml-0.5" />
                       )}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-white truncate">
+                  <h4 className="font-semibold text-white truncate text-sm md:text-base">
                     {track.title}
                   </h4>
-                  <p className="text-sm text-white/60 truncate">
+                  <p className="text-xs md:text-sm text-white/60 truncate">
                     {track.artist}
                   </p>
                 </div>

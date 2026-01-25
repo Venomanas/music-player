@@ -158,6 +158,13 @@ export const usePlayerStore = create<AppState>()(
         fetchLibrary: async () => {
           set({ isLoading: true });
 
+          // Guard: ensure supabase client is available
+          if (!supabase) {
+            console.error("Supabase client not initialized");
+            set({ isLoading: false });
+            return;
+          }
+
           // 1. Fetch Songs for the "Home" view
           const { data: songs, error: songError } = await supabase
             .from("songs")
@@ -211,43 +218,48 @@ export const usePlayerStore = create<AppState>()(
         toggleShuffle: () => set(state => ({ shuffle: !state.shuffle })),
 
         // Updated Create Playlist (Optimistic UI + DB Insert)
-        createPlaylist: async (name, description) => {
-          // 1. Optimistic Update
-          const tempId = Date.now().toString();
-          const newPlaylist = {
-            id: tempId,
-            name,
-            description,
-            tracks: [],
-            createdAt: new Date(),
-          };
-
-          set(state => ({ playlists: [...state.playlists, newPlaylist] }));
-
-          // 2. DB Insert
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (!user) return; // Guard clause if not logged in
-
-          const { data, error } = await supabase
-            .from("playlists")
-            .insert({ user_id: user.id, name, description })
-            .select()
-            .single();
-
-          if (error) {
-            console.error("Failed to create playlist:", error);
-            // Revert state if needed
-          } else if (data) {
-            // Update the temporary ID with real DB ID
-            set(state => ({
-              playlists: state.playlists.map(p =>
-                p.id === tempId ? { ...p, id: data.id } : p
-              ),
-            }));
-          }
-        },
+                createPlaylist: async (name, description) => {
+                  // 1. Optimistic Update
+                  const tempId = Date.now().toString();
+                  const newPlaylist = {
+                    id: tempId,
+                    name,
+                    description,
+                    tracks: [],
+                    createdAt: new Date(),
+                  };
+        
+                  set(state => ({ playlists: [...state.playlists, newPlaylist] }));
+        
+                  // 2. DB Insert
+                  if (!supabase) {
+                    console.error("Supabase client not initialized");
+                    return;
+                  }
+        
+                  const {
+                    data: { user },
+                  } = await supabase.auth.getUser();
+                  if (!user) return; // Guard clause if not logged in
+        
+                  const { data, error } = await supabase
+                    .from("playlists")
+                    .insert({ user_id: user.id, name, description })
+                    .select()
+                    .single();
+        
+                  if (error) {
+                    console.error("Failed to create playlist:", error);
+                    // Revert state if needed
+                  } else if (data) {
+                    // Update the temporary ID with real DB ID
+                    set(state => ({
+                      playlists: state.playlists.map(p =>
+                        p.id === tempId ? { ...p, id: data.id } : p
+                      ),
+                    }));
+                  }
+                },
 
         addToPlaylist: (playlistId, track) =>
           set(state => ({

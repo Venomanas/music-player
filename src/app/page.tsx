@@ -1,15 +1,14 @@
 "use client";
 
-import { useState , useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Music, Headphones, Guitar, Drum } from "lucide-react";
+import { Music, Headphones, Guitar, User } from "lucide-react";
 import PianoKeyboard from "@/src/components/studio/PianoKeyboard";
 import DrumMachine from "@/src/components/studio/DrumMachine";
 import MixerBoard from "@/src/components/studio/MixerBoard";
-import MusicLibrary from "@/src/components/player/musicLibrary"; 
+import MusicLibrary from "@/src/components/player/musicLibrary";
 import Sequencer from "@/src/components/studio/Sequencer";
 import { usePlayerStore } from "@/src/lib/store/playerStore";
-import { User } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -21,55 +20,54 @@ export default function HomePage() {
   }, [fetchLibrary]);
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="min-h-screen p-3 md:p-8 pb-32">
       {/* Header */}
-      <header className="mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-linear-to-r from-purple-600 to-pink-600 rounded-xl">
-              <Music className="w-8 h-8" />
+      <header className="mb-6 md:mb-8">
+        <div className="flex items-center justify-between gap-3">
+          {/* Logo */}
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            <div className="p-2 md:p-3 bg-linear-to-r from-purple-600 to-pink-600 rounded-lg md:rounded-xl">
+              <Music className="w-5 h-5 md:w-8 md:h-8" />
             </div>
-            <h1 className="text-3xl font-bold">MusicStream</h1>
+            <h1 className="text-xl md:text-3xl font-bold">MusicStream</h1>
           </div>
 
-          <div className="flex gap-2">
+          {/* Navigation Buttons */}
+          <div className="flex gap-1.5 md:gap-2">
             <button
               onClick={() => setActiveTab("stream")}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+              className={`px-3 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-all text-sm md:text-base ${
                 activeTab === "stream"
                   ? "bg-white text-black"
                   : "bg-white/10 text-white hover:bg-white/20"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Headphones className="w-5 h-5" />
-                <span>Stream</span>
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <Headphones className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline">Stream</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab("studio")}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+              className={`px-3 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-all text-sm md:text-base ${
                 activeTab === "studio"
                   ? "bg-white text-black"
                   : "bg-white/10 text-white hover:bg-white/20"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Guitar className="w-5 h-5" />
-                <span>Studio</span>
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <Guitar className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline">Studio</span>
               </div>
             </button>
-          {/* Add this button */}
-          <Link href="/dashboard">
-            <button className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
-              <User className="w-5 h-5" />
-            </button>
-          </Link>
-        </div>
+            <Link href="/dashboard">
+              <button className="p-2 md:p-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
+                <User className="w-4 h-4 md:w-5 md:h-5" />
+              </button>
+            </Link>
           </div>
-          
-
-        <p className="text-white/70 mt-4">
+        </div>
+        <p className="text-white/70 mt-3 md:mt-4 text-xs md:text-base px-0.5">
           {activeTab === "stream"
             ? "Discover and stream music from around the world"
             : "Create your own music with virtual instruments and mixing tools"}
@@ -86,54 +84,13 @@ export default function HomePage() {
         {activeTab === "stream" ? (
           <MusicLibrary />
         ) : (
-          <div className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
+          <div className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <PianoKeyboard />
               <DrumMachine />
             </div>
             <Sequencer />
             <MixerBoard />
-
-            <div className="bg-gray-900/50 p-6 rounded-2xl border border-white/10">
-              <h3 className="text-xl font-bold text-white mb-4">
-                Quick Start Guide
-              </h3>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="bg-white/5 p-4 rounded-xl">
-                  <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-3">
-                    <Music className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <h4 className="font-semibold text-white mb-2">
-                    1. Play Instruments
-                  </h4>
-                  <p className="text-white/60 text-sm">
-                    Click piano keys or drum pads to play sounds
-                  </p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl">
-                  <div className="w-12 h-12 bg-pink-500/20 rounded-lg flex items-center justify-center mb-3">
-                    <Drum className="w-6 h-6 text-pink-400" />
-                  </div>
-                  <h4 className="font-semibold text-white mb-2">
-                    2. Adjust Mix
-                  </h4>
-                  <p className="text-white/60 text-sm">
-                    Use mixer controls to adjust volume and pan
-                  </p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3">
-                    <Guitar className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <h4 className="font-semibold text-white mb-2">
-                    3. Export Music
-                  </h4>
-                  <p className="text-white/60 text-sm">
-                    Export your creation as audio file
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </motion.div>

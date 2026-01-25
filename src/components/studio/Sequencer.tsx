@@ -132,7 +132,7 @@ const Sequencer: React.FC = () => {
                     h-8 rounded-sm transition-all duration-75
                     ${
                       active
-                        ? "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                        ? "bg-[#FFC400] shadow-[0_0_10px_rgba(168,85,247,0.5)]"
                         : "bg-white/10 hover:bg-white/20"
                     }
                     ${currentStep === step ? "border border-white/50" : ""}
