@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Music, Headphones, Guitar, User } from "lucide-react";
+import { Music, Headphones, Guitar, User} from "lucide-react";
 import PianoKeyboard from "@/src/components/studio/PianoKeyboard";
 import DrumMachine from "@/src/components/studio/DrumMachine";
 import MixerBoard from "@/src/components/studio/MixerBoard";
@@ -31,7 +31,6 @@ export default function HomePage() {
             </div>
             <h1 className="text-xl md:text-3xl font-bold">MusicStream</h1>
           </div>
-
           {/* Navigation Buttons */}
           <div className="flex gap-1.5 md:gap-2">
             <button

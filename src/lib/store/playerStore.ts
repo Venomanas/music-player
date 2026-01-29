@@ -3,6 +3,22 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AudioTrack } from "@/src/lib/audio/player";
 import { supabase } from "@/src/lib/supabase/client";
+import { HindiSong, hindiSongs } from "@/src/data/hindiSongs";
+/* -------------------------------- TYPES -------------------------------- */
+const convertHindiSongToLibraryTrack = (song: HindiSong): LibraryTrack => ({
+  id: `hindi-${song.id}`,
+  title: song.title,
+  artist: song.artist,
+  url: song.audioUrl, // This should be "/audio/music/tum-hi-ho.mp3"
+  duration: song.duration,
+  coverUrl: song.coverUrl,
+  genre: song.genre[0], // Take first genre
+  source: "library",
+  language: song.language.toLowerCase() as "hindi" | "english" | "other",
+  mood: song.mood,
+  year: song.year,
+  album: song.album,
+});
 
 export interface Playlist {
   id: string;
@@ -12,25 +28,32 @@ export interface Playlist {
   coverUrl?: string;
   createdAt: Date;
 }
-export interface AudioTracks {
+
+export interface StudioMix {
+  id: string;
+  name: string;
+  bpm: number;
+  gridData: Record<string, boolean[]>;
+  createdAt: Date;
+}
+
+export type LibraryTrack = {
   id: string;
   title: string;
   artist: string;
   url: string;
   duration: number;
-  coverUrl: string;
-  genre: string; // Changed from optional to required
-  bpm?: number;
-}
-export interface StudioMix {
-  id: string;
-  name: string;
-  bpm: number;
-  gridData: Record<string, boolean[]>; // The sequencer pattern
-  createdAt: Date;
-}
+  coverUrl?: string;
+  genre?: string;
+  source: "online" | "local" | "library";
+  language?: "hindi" | "english" | "other";
+  mood?: string[];
+  year?: number;
+  album?: string;
+};
+
 export interface AppState {
-  // Player state
+  /* ---------------- PLAYER ---------------- */
   currentTrack: AudioTrack | null;
   isPlaying: boolean;
   volume: number;
@@ -39,291 +62,402 @@ export interface AppState {
   repeat: "none" | "one" | "all";
   shuffle: boolean;
 
-  // Library state
+  /* ---------------- LIBRARY ---------------- */
+  libraryTracks: LibraryTrack[];
   playlists: Playlist[];
   likedTracks: AudioTrack[];
   recentTracks: AudioTrack[];
-  mixes: StudioMix[]; // NEW: Store for saved studio beats
+  mixes: StudioMix[];
 
-  // UI state
+  /* ---------------- UI ---------------- */
   sidebarOpen: boolean;
   currentView: "home" | "library" | "search" | "studio";
   selectedCategory: string;
-
-  // NEW: Loading state
+  selectedLanguage: "all" | "hindi" | "english";
   isLoading: boolean;
+
+  /* ---------------- ACTIONS ---------------- */
   fetchLibrary: () => Promise<void>;
-  // Actions
+
   setCurrentTrack: (track: AudioTrack | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
   setVolume: (volume: number) => void;
   setProgress: (progress: number) => void;
+
   addToQueue: (track: AudioTrack) => void;
   clearQueue: () => void;
   toggleRepeat: () => void;
   toggleShuffle: () => void;
 
-  // Library actions
-  createPlaylist: (name: string, description?: string) => void;
+  /* Library actions */
+  addToLibrary: (track: LibraryTrack) => void;
+  removeFromLibrary: (id: string) => void;
+
+  createPlaylist: (name: string, description?: string) => Promise<void>;
   addToPlaylist: (playlistId: string, track: AudioTrack) => void;
   removeFromPlaylist: (playlistId: string, trackId: string) => void;
   deletePlaylist: (playlistId: string) => void;
   toggleLikeTrack: (track: AudioTrack) => void;
 
-  // UI actions
+  /* UI actions */
   toggleSidebar: () => void;
-  setCurrentView: (view: "home" | "library" | "search" | "studio") => void;
+  setCurrentView: (view: AppState["currentView"]) => void;
   setSelectedCategory: (category: string) => void;
+  setSelectedLanguage: (language: "all" | "hindi" | "english") => void;
 
+  /* Studio */
   saveMix: (mix: StudioMix) => void;
   deleteMix: (id: string) => void;
+
+  /* Hindi Songs Actions */
+  getHindiSongs: () => LibraryTrack[];
+  getEnglishSongs: () => LibraryTrack[];
+  searchSongs: (query: string) => LibraryTrack[];
+  filterSongsByGenre: (genre: string) => LibraryTrack[];
+  filterSongsByMood: (mood: string) => LibraryTrack[];
+  filterSongsByYear: (year: number) => LibraryTrack[];
+  getTopHindiSongs: (limit?: number) => LibraryTrack[];
+  getNewReleases: () => LibraryTrack[];
+
+  playTrack: (track: LibraryTrack) => void;
+  toggleLike: (id: string) => void;
 }
 
-const initialTracks: AudioTrack[] = [
+/* ---------------- INITIAL PUBLIC TRACKS (INCLUDING HINDI SONGS) ---------------- */
+const HINDI_LIBRARY_FROM_LOCAL: LibraryTrack[] = hindiSongs.map(
+  convertHindiSongToLibraryTrack,
+);
+
+const INITIAL_LIBRARY: LibraryTrack[] = [
   {
-    id: "1",
+    id: "seed-1",
     title: "Coffee Break",
     artist: "Lofi Dreamer",
     url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
     duration: 168,
-    coverUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d",
+    coverUrl:
+      "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300&h=300&fit=crop",
     genre: "chill",
-    bpm: 85,
+    source: "online",
+    language: "english",
+    mood: ["relaxing", "calm"],
   },
   {
-    id: "2",
+    id: "seed-2",
     title: "Midnight Walk",
     artist: "Ambient Collective",
     url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
     duration: 195,
-    coverUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+    coverUrl:
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
     genre: "chill",
-    bpm: 90,
+    source: "online",
+    language: "english",
+    mood: ["relaxing", "peaceful"],
   },
   {
-    id: "3",
+    id: "seed-3",
     title: "Digital Dreams",
     artist: "Synth Wave",
     url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
     duration: 262,
-    coverUrl: "https://images.unsplash.com/photo-1571330735066-03aaa9429d89",
+    coverUrl:
+      "https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=300&h=300&fit=crop",
     genre: "electronic",
-    bpm: 120,
-  },
-  {
-    id: "4",
-    title: "Neon Pulse",
-    artist: "Cyber Beats",
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-    duration: 225,
-    coverUrl: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04",
-    genre: "electronic",
-    bpm: 128,
-  },
-  {
-    id: "5",
-    title: "Morning Coffee",
-    artist: "Acoustic Sessions",
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-    duration: 210,
-    coverUrl: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea",
-    genre: "acoustic",
-    bpm: 100,
+    source: "online",
+    language: "english",
+    mood: ["energetic", "futuristic"],
   },
 ];
 
+/* ---------------- STORE ---------------- */
+
 export const usePlayerStore = create<AppState>()(
   persist(
-    set => {
-      return {
-        // Initial state
+    (set, get) => ({
+      /* PLAYER */
+      currentTrack: null,
+      isPlaying: false,
+      volume: 70,
+      progress: 0,
+      queue: [],
+      repeat: "none",
+      shuffle: false,
 
-        currentTrack: null,
-        isPlaying: false,
-        volume: 70,
-        progress: 0,
-        queue: [],
-        repeat: "none",
-        shuffle: false,
-        playlists: [],
-        likedTracks: [],
-        recentTracks: initialTracks.slice(0, 3),
-        sidebarOpen: false,
-        currentView: "home",
-        selectedCategory: "all",
-        isLoading: false,
-        mixes: [],
+      /* LIBRARY */
+      libraryTracks: [...INITIAL_LIBRARY, ...HINDI_LIBRARY_FROM_LOCAL],
+      playlists: [],
+      likedTracks: [],
+      recentTracks: [],
+      mixes: [],
 
-        // --- NEW: Fetch Real Data ---
-        fetchLibrary: async () => {
-          set({ isLoading: true });
+      /* UI */
+      sidebarOpen: false,
+      currentView: "home",
+      selectedCategory: "all",
+      selectedLanguage: "all",
+      isLoading: false,
 
-          // Guard: ensure supabase client is available
-          if (!supabase) {
-            console.error("Supabase client not initialized");
-            set({ isLoading: false });
-            return;
-          }
+      /* ---------------- CORE ACTIONS ---------------- */
 
-          // 1. Fetch Songs for the "Home" view
-          const { data: songs, error: songError } = await supabase
-            .from("songs")
-            .select("*")
-            .limit(20);
+      setCurrentTrack: track => set({ currentTrack: track }),
+      setIsPlaying: isPlaying => set({ isPlaying }),
+      setVolume: volume => set({ volume }),
+      setProgress: progress => set({ progress }),
 
-          if (songError) console.error("Error fetching songs:", songError);
+      addToQueue: track => set(state => ({ queue: [...state.queue, track] })),
 
-          // 2. Fetch User Playlists (if logged in)
-          // Note: You need to handle auth user checking in a real app component
-          // For now, we just fetch what's available or public
+      clearQueue: () => set({ queue: [] }),
 
-          // Map DB structure to App structure
-          const mappedSongs: AudioTrack[] = (songs || []).map(song => ({
-            id: song.id,
-            title: song.title,
-            artist: song.artist,
-            url: song.url,
-            duration: song.duration || 0,
-            coverUrl: song.cover_url || "/default-cover.jpg",
-            genre: song.genre || "unknown",
-          }));
-
-          set({
-            // If you want to replace the hardcoded "initialTracks" with DB data:
-            // recentTracks: mappedSongs.slice(0, 5),
-            isLoading: false,
-          });
-        },
-
-        // Actions
-        setCurrentTrack: track => set({ currentTrack: track }),
-        setIsPlaying: isPlaying => set({ isPlaying }),
-        setVolume: volume => set({ volume }),
-        setProgress: progress => set({ progress }),
-
-        addToQueue: track => set(state => ({ queue: [...state.queue, track] })),
-
-        clearQueue: () => set({ queue: [] }),
-
-        toggleRepeat: () =>
-          set(state => ({
-            repeat:
-              state.repeat === "none"
-                ? "one"
-                : state.repeat === "one"
+      toggleRepeat: () =>
+        set(state => ({
+          repeat:
+            state.repeat === "none"
+              ? "one"
+              : state.repeat === "one"
                 ? "all"
                 : "none",
-          })),
+        })),
 
-        toggleShuffle: () => set(state => ({ shuffle: !state.shuffle })),
+      toggleShuffle: () => set(state => ({ shuffle: !state.shuffle })),
 
-        // Updated Create Playlist (Optimistic UI + DB Insert)
-                createPlaylist: async (name, description) => {
-                  // 1. Optimistic Update
-                  const tempId = Date.now().toString();
-                  const newPlaylist = {
-                    id: tempId,
-                    name,
-                    description,
-                    tracks: [],
-                    createdAt: new Date(),
-                  };
-        
-                  set(state => ({ playlists: [...state.playlists, newPlaylist] }));
-        
-                  // 2. DB Insert
-                  if (!supabase) {
-                    console.error("Supabase client not initialized");
-                    return;
-                  }
-        
-                  const {
-                    data: { user },
-                  } = await supabase.auth.getUser();
-                  if (!user) return; // Guard clause if not logged in
-        
-                  const { data, error } = await supabase
-                    .from("playlists")
-                    .insert({ user_id: user.id, name, description })
-                    .select()
-                    .single();
-        
-                  if (error) {
-                    console.error("Failed to create playlist:", error);
-                    // Revert state if needed
-                  } else if (data) {
-                    // Update the temporary ID with real DB ID
-                    set(state => ({
-                      playlists: state.playlists.map(p =>
-                        p.id === tempId ? { ...p, id: data.id } : p
-                      ),
-                    }));
-                  }
-                },
+      /* ---------------- PLAYER ACTIONS ---------------- */
 
-        addToPlaylist: (playlistId, track) =>
+      playTrack: (track: LibraryTrack) => {
+        const audioTrack = convertToAudioTrack(track);
+        set({ currentTrack: audioTrack, isPlaying: true });
+        // You might want to integrate with your audioPlayer here
+      },
+
+      toggleLike: (id: string) => {
+        const track = get().libraryTracks.find(t => t.id === id);
+        if (track) {
+          const audioTrack = convertToAudioTrack(track);
+          const exists = get().likedTracks.some(t => t.id === id);
           set(state => ({
-            playlists: state.playlists.map(playlist =>
-              playlist.id === playlistId
-                ? { ...playlist, tracks: [...playlist.tracks, track] }
-                : playlist
+            likedTracks: exists
+              ? state.likedTracks.filter(t => t.id !== id)
+              : [...state.likedTracks, audioTrack],
+          }));
+        }
+      },
+
+      /* ---------------- LIBRARY ACTIONS ---------------- */
+
+      addToLibrary: track =>
+        set(state => {
+          if (state.libraryTracks.some(t => t.id === track.id)) return state;
+          return { libraryTracks: [track, ...state.libraryTracks] };
+        }),
+
+      removeFromLibrary: id =>
+        set(state => ({
+          libraryTracks: state.libraryTracks.filter(t => t.id !== id),
+        })),
+
+      toggleLikeTrack: track =>
+        set(state => {
+          const exists = state.likedTracks.some(t => t.id === track.id);
+          return {
+            likedTracks: exists
+              ? state.likedTracks.filter(t => t.id !== track.id)
+              : [...state.likedTracks, track],
+          };
+        }),
+
+      /* ---------------- PLAYLISTS ---------------- */
+
+      createPlaylist: async (name, description) => {
+        const tempId = Date.now().toString();
+
+        const optimistic: Playlist = {
+          id: tempId,
+          name,
+          description,
+          tracks: [],
+          createdAt: new Date(),
+        };
+
+        set(state => ({ playlists: [...state.playlists, optimistic] }));
+
+        if (!supabase) return;
+
+        const { data, error } = await supabase
+          .from("playlists")
+          .insert({ name, description })
+          .select()
+          .single();
+
+        if (!error && data) {
+          set(state => ({
+            playlists: state.playlists.map(p =>
+              p.id === tempId ? { ...p, id: data.id } : p,
             ),
-          })),
+          }));
+        }
+      },
 
-        removeFromPlaylist: (playlistId, trackId) =>
-          set(state => ({
-            playlists: state.playlists.map(playlist =>
-              playlist.id === playlistId
-                ? {
-                    ...playlist,
-                    tracks: playlist.tracks.filter(t => t.id !== trackId),
-                  }
-                : playlist
-            ),
-          })),
+      addToPlaylist: (playlistId, track) =>
+        set(state => ({
+          playlists: state.playlists.map(p =>
+            p.id === playlistId ? { ...p, tracks: [...p.tracks, track] } : p,
+          ),
+        })),
 
-        deletePlaylist: playlistId =>
-          set(state => ({
-            playlists: state.playlists.filter(p => p.id !== playlistId),
-          })),
+      removeFromPlaylist: (playlistId, trackId) =>
+        set(state => ({
+          playlists: state.playlists.map(p =>
+            p.id === playlistId
+              ? { ...p, tracks: p.tracks.filter(t => t.id !== trackId) }
+              : p,
+          ),
+        })),
 
-        toggleLikeTrack: track =>
-          set(state => {
-            const isLiked = state.likedTracks.some(t => t.id === track.id);
-            return {
-              likedTracks: isLiked
-                ? state.likedTracks.filter(t => t.id !== track.id)
-                : [...state.likedTracks, track],
-            };
-          }),
+      deletePlaylist: playlistId =>
+        set(state => ({
+          playlists: state.playlists.filter(p => p.id !== playlistId),
+        })),
 
-        toggleSidebar: () =>
-          set(state => ({ sidebarOpen: !state.sidebarOpen })),
+      /* ---------------- UI ---------------- */
 
-        setCurrentView: view => set({ currentView: view }),
-        setSelectedCategory: category => set({ selectedCategory: category }),
+      toggleSidebar: () => set(state => ({ sidebarOpen: !state.sidebarOpen })),
 
-        saveMix: mix =>
-          set(state => ({
-            mixes: [...state.mixes, mix],
-          })),
+      setCurrentView: view => set({ currentView: view }),
 
-        deleteMix: id =>
-          set(state => ({
-            mixes: state.mixes.filter(m => m.id !== id),
-          })),
-      };
-    },
+      setSelectedCategory: category => set({ selectedCategory: category }),
+
+      setSelectedLanguage: language => set({ selectedLanguage: language }),
+
+      /* ---------------- STUDIO ---------------- */
+
+      saveMix: mix => set(state => ({ mixes: [...state.mixes, mix] })),
+
+      deleteMix: id =>
+        set(state => ({
+          mixes: state.mixes.filter(m => m.id !== id),
+        })),
+
+      /* ---------------- HINDI SONGS ACTIONS ---------------- */
+
+      getHindiSongs: () => {
+        const { libraryTracks } = get();
+        return libraryTracks.filter(track => track.language === "hindi");
+      },
+
+      getEnglishSongs: () => {
+        const { libraryTracks } = get();
+        return libraryTracks.filter(track => track.language === "english");
+      },
+
+      searchSongs: (query: string) => {
+        const { libraryTracks } = get();
+        const q = query.toLowerCase();
+        return libraryTracks.filter(
+          track =>
+            track.title.toLowerCase().includes(q) ||
+            track.artist.toLowerCase().includes(q) ||
+            (track.album && track.album.toLowerCase().includes(q)) ||
+            (track.genre && track.genre.toLowerCase().includes(q)),
+        );
+      },
+
+      filterSongsByGenre: (genre: string) => {
+        const { libraryTracks } = get();
+        return libraryTracks.filter(track =>
+          track.genre?.toLowerCase().includes(genre.toLowerCase()),
+        );
+      },
+
+      filterSongsByMood: (mood: string) => {
+        const { libraryTracks } = get();
+        return libraryTracks.filter(track =>
+          track.mood?.some(m => m.toLowerCase().includes(mood.toLowerCase())),
+        );
+      },
+
+      filterSongsByYear: (year: number) => {
+        const { libraryTracks } = get();
+        return libraryTracks.filter(track => track.year === year);
+      },
+
+      getTopHindiSongs: (limit = 5) => {
+        const hindiSongs = get().getHindiSongs();
+        return hindiSongs
+          .sort((a, b) => (b.year || 0) - (a.year || 0))
+          .slice(0, limit);
+      },
+
+      getNewReleases: () => {
+        const { libraryTracks } = get();
+        const currentYear = new Date().getFullYear();
+        return libraryTracks
+          .filter(track => track.year && track.year >= currentYear - 1)
+          .sort((a, b) => (b.year || 0) - (a.year || 0));
+      },
+
+      /* ---------------- OPTIONAL FETCH ---------------- */
+
+      fetchLibrary: async () => {
+        set({ isLoading: true });
+
+        try {
+          if (supabase) {
+            const { data: playlistData } = await supabase
+              .from("playlists")
+              .select("*")
+              .order("created_at", { ascending: false });
+
+            if (playlistData) {
+              set(state => ({
+                playlists: playlistData.map(p => ({
+                  id: p.id,
+                  name: p.name,
+                  description: p.description,
+                  tracks: p.tracks || [],
+                  createdAt: new Date(p.created_at),
+                })),
+              }));
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching library:", error);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+    }),
     {
-      name: "music-player-storage",
+      name: "music-player-storage-v2",
       partialize: state => ({
+        libraryTracks: state.libraryTracks,
+        playlists: state.playlists,
+        likedTracks: state.likedTracks,
         volume: state.volume,
         repeat: state.repeat,
         shuffle: state.shuffle,
-        playlists: state.playlists,
-        likedTracks: state.likedTracks,
         recentTracks: state.recentTracks,
+        mixes: state.mixes,
       }),
-    }
-  )
+    },
+  ),
 );
+
+/* ---------------- HELPER FUNCTIONS ---------------- */
+
+export function formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+}
+
+export function convertToAudioTrack(libraryTrack: LibraryTrack): AudioTrack {
+  return {
+    id: libraryTrack.id,
+    title: libraryTrack.title,
+    artist: libraryTrack.artist,
+    url: libraryTrack.url,
+    duration: libraryTrack.duration,
+    coverUrl: libraryTrack.coverUrl || "",
+    genre: "",
+  };
+}

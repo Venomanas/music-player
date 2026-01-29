@@ -1,604 +1,667 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/immutability */
 "use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import React, { useCallback, useEffect, useState } from "react";
+import HindiMusicSection from "@/src/components/player/HindimusicSection";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Play,
   Pause,
   Heart,
-  MoreVertical,
-  ListMusic,
-  Clock,
-  Music,
-  Headphones,
-  TrendingUp,
+  Search,
+  Loader2,
+  Upload,
+  Music2,
+  Globe,
+  Filter,
 } from "lucide-react";
-import { usePlayerStore } from "@/src/lib/store/playerStore";
+import MusicShelf from "@/src/components/Musicshelf";
+import {
+  usePlayerStore,
+  convertToAudioTrack,
+  type LibraryTrack,
+} from "@/src/lib/store/playerStore";
 import { audioPlayer } from "@/src/lib/audio/player";
 import { createAudioTrack } from "@/src/lib/utils/audio";
 import Image from "next/image";
 
-type MusicTrack = {
+/* -------- JioSaavn API TYPES -------- */
+
+type SaavnArtist = {
+  name: string;
+};
+
+type SaavnImage = {
+  quality: string;
+  url: string;
+};
+
+type SaavnDownloadUrl = {
+  quality: string;
+  url: string;
+};
+
+type SaavnSong = {
   id: string;
-  title: string;
-  artist: string;
-  album?: string;
-  duration: number;
-  audioUrl?: string;
-  url?: string;
-  coverUrl?: string;
-  genre?: string;
-  liked?: boolean;
-  playCount?: number;
+  name: string;
+  duration?: number;
+  language?: string;
+
+  artists?: {
+    primary?: SaavnArtist[];
+  };
+
+  album?: {
+    name?: string;
+  };
+
+  image?: SaavnImage[];
+  downloadUrl?: SaavnDownloadUrl[];
 };
 
-// Component for image with fallback
-const TrackImage: React.FC<{
-  src?: string;
-  alt: string;
-  size: number;
-  className?: string;
-}> = ({ src, alt, size, className = "" }) => {
-  const [error, setError] = useState(false);
-
-  if (!src || error) {
-    return (
-      <div
-        className={`bg-linear-to-br from-purple-600 to-pink-600 flex items-center justify-center ${className}`}
-      >
-        <Music className="w-1/2 h-1/2 text-white/30" />
-      </div>
-    );
-  }
-
-  return (
-    <Image
-      width={size}
-      height={size}
-      src={src}
-      alt={alt}
-      className={className}
-      onError={() => setError(true)}
-      loading="lazy"
-      unoptimized // Use this to bypass Next.js image optimization if external URLs are problematic
-    />
-  );
+type SaavnSearchResponse = {
+  data: {
+    results: SaavnSong[];
+  };
 };
 
-const MusicLibrary: React.FC = () => {
+/* ---------------- COMPONENT ---------------- */
+
+export default function MusicLibrary() {
   const {
-    recentTracks,
-    likedTracks,
     currentTrack,
     isPlaying,
-    toggleLikeTrack,
     setCurrentTrack,
     setIsPlaying,
+    toggleLikeTrack,
+    likedTracks,
+    libraryTracks,
+    searchSongs,
+    getHindiSongs,
+    getEnglishSongs,
+    playTrack: storePlayTrack,
+    toggleLike,
   } = usePlayerStore();
 
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [view, setView] = useState<"all" | "hindi" | "english">("all");
+  const [query, setQuery] = useState("");
+  const [localTracks, setLocalTracks] = useState<LibraryTrack[]>([]);
+  const [results, setResults] = useState<LibraryTrack[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedGenre, setSelectedGenre] = useState<string>("all");
 
-  const categories = [
-    {
-      id: "all",
-      name: "All Music",
-      icon: <Music className="w-4 h-4" />,
-      count: 150,
-    },
-    {
-      id: "chill",
-      name: "Chill & Lo-fi",
-      icon: <Headphones className="w-4 h-4" />,
-      count: 42,
-    },
-    {
-      id: "electronic",
-      name: "Electronic",
-      icon: <TrendingUp className="w-4 h-4" />,
-      count: 38,
-    },
-    {
-      id: "acoustic",
-      name: "Acoustic",
-      icon: <Music className="w-4 h-4" />,
-      count: 25,
-    },
-    {
-      id: "jazz",
-      name: "Jazz",
-      icon: <ListMusic className="w-4 h-4" />,
-      count: 18,
-    },
-    {
-      id: "hiphop",
-      name: "Hip Hop",
-      icon: <Headphones className="w-4 h-4" />,
-      count: 22,
-    },
-  ];
+  /* ---------------- GET TRACKS BASED ON VIEW ---------------- */
 
-  const musicTracks = [
-    {
-      id: "1",
-      title: "Coffee Break",
-      artist: "Lofi Dreamer",
-      album: "Chill Beats Vol. 1",
-      duration: 168,
-      audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-      coverUrl: "https://picsum.photos/seed/music1/300/300",
-      genre: "chill",
-      liked: false,
-      playCount: 1245,
-    },
-    {
-      id: "2",
-      title: "Midnight Walk",
-      artist: "Ambient Collective",
-      album: "Night Sounds",
-      duration: 195,
-      audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-      coverUrl: "https://picsum.photos/seed/music2/300/300",
-      genre: "chill",
-      liked: true,
-      playCount: 892,
-    },
-    {
-      id: "3",
-      title: "Digital Dreams",
-      artist: "Synth Wave",
-      album: "Electronic Vibes",
-      duration: 262,
-      audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-      coverUrl: "https://picsum.photos/seed/music3/300/300",
-      genre: "electronic",
-      liked: false,
-      playCount: 1567,
-    },
-    {
-      id: "4",
-      title: "Neon Pulse",
-      artist: "Cyber Beats",
-      album: "Future Sounds",
-      duration: 225,
-      audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-      coverUrl: "https://picsum.photos/seed/music4/300/300",
-      genre: "electronic",
-      liked: true,
-      playCount: 2103,
-    },
-    {
-      id: "5",
-      title: "Morning Coffee",
-      artist: "Acoustic Sessions",
-      album: "Quiet Moments",
-      duration: 210,
-      audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-      coverUrl: "https://picsum.photos/seed/music5/300/300",
-      genre: "acoustic",
-      liked: false,
-      playCount: 756,
-    },
-    {
-      id: "6",
-      title: "Urban Jazz",
-      artist: "Smooth Operators",
-      album: "City Nights",
-      duration: 245,
-      audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-      coverUrl: "https://picsum.photos/seed/music6/300/300",
-      genre: "jazz",
-      liked: false,
-      playCount: 943,
-    },
-    {
-      id: "7",
-      title: "Desert Vibes",
-      artist: "Nomadic Sounds",
-      album: "World Traveler",
-      duration: 198,
-      audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-      coverUrl: "https://picsum.photos/seed/music7/300/300",
-      genre: "world",
-      liked: true,
-      playCount: 1124,
-    },
-    {
-      id: "8",
-      title: "Ocean Waves",
-      artist: "Nature Sounds",
-      album: "Calm Nature",
-      duration: 315,
-      audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-      coverUrl: "https://picsum.photos/seed/music8/300/300",
-      genre: "ambient",
-      liked: false,
-      playCount: 1876,
-    },
-  ];
+  const getTracksByView = useCallback(() => {
+    switch (view) {
+      case "hindi":
+        return getHindiSongs();
+      case "english":
+        return getEnglishSongs();
+      default:
+        return libraryTracks;
+    }
+  }, [view, getHindiSongs, getEnglishSongs, libraryTracks]);
 
-  const handlePlayTrack = (track: MusicTrack) => {
+  /* ---------------- DEBOUNCED SEARCH ---------------- */
+
+  useEffect(() => {
+    if (!query.trim()) {
+      const tracks = getTracksByView();
+      const filteredByGenre =
+        selectedGenre === "all"
+          ? tracks
+          : tracks.filter(
+              track =>
+                track.genre?.toLowerCase() === selectedGenre.toLowerCase(),
+            );
+
+      setResults([...filteredByGenre, ...localTracks]);
+      return;
+    }
+
+    const delay = setTimeout(async () => {
+      setLoading(true);
+
+      // Search in local library first
+      const localSearchResults = searchSongs(query);
+
+      // Also search JioSaavn for online results
+      const onlineResults = await searchJioSaavn(query);
+
+      // Combine results, removing duplicates
+      const combined = [...localSearchResults, ...onlineResults];
+      const uniqueResults = Array.from(
+        new Map(combined.map(track => [track.id, track])).values(),
+      );
+
+      // Apply genre filter if selected
+      const filteredResults =
+        selectedGenre === "all"
+          ? uniqueResults
+          : uniqueResults.filter(
+              track =>
+                track.genre?.toLowerCase() === selectedGenre.toLowerCase(),
+            );
+
+      setResults([...filteredResults, ...localTracks]);
+      setLoading(false);
+    }, 400);
+
+    return () => clearTimeout(delay);
+  }, [query, view, selectedGenre, localTracks, getTracksByView, searchSongs]);
+
+  /* ---------------- SAAVN SEARCH ---------------- */
+
+  async function searchJioSaavn(q: string): Promise<LibraryTrack[]> {
+    try {
+      const res = await fetch(
+        `https://saavn.dev/api/search/songs?query=${encodeURIComponent(q)}&limit=20`,
+      );
+
+      if (!res.ok) return [];
+
+      const json: SaavnSearchResponse = await res.json();
+
+      return json.data.results.map((song: SaavnSong): LibraryTrack => {
+        const artistNames =
+          song.artists?.primary?.map((a: SaavnArtist) => a.name).join(", ") ??
+          "Unknown";
+
+        const audioUrl =
+          song.downloadUrl?.find(
+            (d: SaavnDownloadUrl) => d.quality === "320kbps",
+          )?.url ??
+          song.downloadUrl?.[0]?.url ??
+          "";
+
+        const coverUrl =
+          song.image?.find((i: SaavnImage) => i.quality === "500x500")?.url ??
+          song.image?.[0]?.url ??
+          "";
+
+        // Detect if it's Hindi based on artist or language
+        const isHindi =
+          song.language?.toLowerCase().includes("hindi") ||
+          artistNames.toLowerCase().includes("singh") ||
+          artistNames.toLowerCase().includes("kumar");
+
+        return {
+          id: `saavn-${song.id}`,
+          title: song.name,
+          artist: artistNames,
+          album: song.album?.name,
+          duration: song.duration ?? 0,
+          url: audioUrl,
+          coverUrl,
+          genre: "Online",
+          source: "online",
+          language: isHindi ? "hindi" : "english",
+        };
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  /* ---------------- LOCAL UPLOAD ---------------- */
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const tracks: LibraryTrack[] = Array.from(files).map((file: File) => ({
+      id: crypto.randomUUID(),
+      title: file.name.replace(/\.[^/.]+$/, ""),
+      artist: "Local File",
+      duration: 0,
+      url: URL.createObjectURL(file),
+      source: "local",
+      genre: "Local",
+      language: "other",
+    }));
+
+    setLocalTracks(prev => [...tracks, ...prev]);
+    setResults(prev => [...tracks, ...prev]);
+  };
+
+  /* ---------------- PLAY HANDLER ---------------- */
+
+  const handlePlayTrack = (track: LibraryTrack) => {
+    if (!track.url) return alert("Audio unavailable");
+
     if (currentTrack?.id === track.id && isPlaying) {
       audioPlayer.pause();
       setIsPlaying(false);
-    } else if (currentTrack?.id === track.id && !isPlaying) {
-      audioPlayer.resume();
-      setIsPlaying(true);
-    } else {
-      if (!track.audioUrl) {
-        console.warn("Attempted to play a track without an audio URL:", track);
-        return;
-      }
-
-      const audioTrack = createAudioTrack({
-        id: track.id,
-        title: track.title,
-        artist: track.artist,
-        url: track.audioUrl,
-        duration: track.duration || 0,
-        coverUrl: track.coverUrl || "",
-        genre: track.genre || "unknown",
-      });
-
-      setCurrentTrack(audioTrack);
-      audioPlayer.play(audioTrack);
-      setIsPlaying(true);
+      return;
     }
+
+    storePlayTrack(track);
+
+    const audioTrack = createAudioTrack({
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      url: track.url,
+      duration: track.duration,
+      coverUrl: track.coverUrl || "",
+      genre: track.genre || "unknown",
+    });
+
+    setCurrentTrack(audioTrack);
+    audioPlayer.play(audioTrack);
+    setIsPlaying(true);
   };
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  /* ---------------- GET GENRES FROM TRACKS ---------------- */
+
+  const getGenres = () => {
+    const genres = new Set<string>();
+    const tracks = getTracksByView();
+
+    tracks.forEach((track: LibraryTrack) => {
+      if (track.genre) {
+        genres.add(track.genre);
+      }
+    });
+
+    localTracks.forEach(track => {
+      if (track.genre) {
+        genres.add(track.genre);
+      }
+    });
+
+    return ["all", ...Array.from(genres).sort()];
   };
 
-  const filteredTracks = musicTracks.filter(track => {
-    const matchesCategory =
-      selectedCategory === "all" || track.genre === selectedCategory;
-    const matchesSearch =
-      searchQuery === "" ||
-      track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      track.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      track.album.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  /* ---------------- FORMAT DURATION ---------------- */
+
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
+
+  /* ---------------- UI ---------------- */
+
+  const genres = getGenres();
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Search Bar */}
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="Search songs, artists, or albums..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="w-full px-10 md:px-12 py-3 md:py-4 bg-white/5 border border-white/10 rounded-xl md:rounded-2xl text-white text-sm md:text-base placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-        />
-        <Music className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-white/40" />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white text-lg"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-
-      {/* Categories */}
-      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
-        <div className="flex gap-2 pb-2 min-w-max">
-          {categories.map(category => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className={`
-                flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl whitespace-nowrap transition-all text-sm md:text-base
-                ${
-                  selectedCategory === category.id
-                    ? "bg-linear-to-r from-purple-600 to-pink-600 text-white shadow-lg"
-                    : "bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
-                }
-              `}
-            >
-              {category.icon}
-              <span className="font-medium">{category.name}</span>
-              <span className="text-xs opacity-70">({category.count})</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        <div className="bg-linear-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-xl md:rounded-2xl border border-white/10">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-linear-to-br from-[#6420AA]/5 to-[#FF3EA5]/5 rounded-3xl p-4 md:p-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-16">
+        {/* HEADER */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-8 md:mb-16"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
             <div>
-              <p className="text-white/60 text-xs md:text-sm">Total Tracks</p>
-              <p className="text-xl md:text-2xl font-bold text-white">150</p>
-            </div>
-            <Music className="w-6 h-6 md:w-8 md:h-8 text-purple-400" />
-          </div>
-        </div>
-        <div className="bg-linear-to-r from-blue-500/20 to-teal-500/20 p-4 rounded-xl md:rounded-2xl border border-white/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/60 text-xs md:text-sm">Listening Time</p>
-              <p className="text-xl md:text-2xl font-bold text-white">
-                48h 22m
+              <h1 className="text-4xl md:text-6xl font-semibold text-[#FF3EA5] mb-2 md:mb-3 tracking-tight">
+                Music Library
+              </h1>
+              <p className="text-lg md:text-xl text-slate-100 font-light">
+                Discover and enjoy your favorite sounds
               </p>
             </div>
-            <Clock className="w-6 h-6 md:w-8 md:h-8 text-blue-400" />
-          </div>
-        </div>
-        <div className="bg-linear-to-r from-green-500/20 to-emerald-500/20 p-4 rounded-xl md:rounded-2xl border border-white/10 sm:col-span-2 lg:col-span-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/60 text-xs md:text-sm">Liked Songs</p>
-              <p className="text-xl md:text-2xl font-bold text-white">
-                {likedTracks.length}
-              </p>
+
+            {/* VIEW TOGGLE */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setView("all")}
+                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium flex items-center gap-2 transition-all ${
+                  view === "all"
+                    ? "bg-[#FF3EA5] text-white"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                }`}
+              >
+                <Globe size={18} />
+                <span>All</span>
+              </button>
+              <button
+                onClick={() => setView("hindi")}
+                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium flex items-center gap-2 transition-all ${
+                  view === "hindi"
+                    ? "bg-[#FF3EA5] text-white"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                }`}
+              >
+                <span>हिंदी</span>
+              </button>
+              <button
+                onClick={() => setView("english")}
+                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium flex items-center gap-2 transition-all ${
+                  view === "english"
+                    ? "bg-[#FF3EA5] text-white"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                }`}
+              >
+                <span>English</span>
+              </button>
             </div>
-            <Heart className="w-6 h-6 md:w-8 md:h-8 text-green-400 fill-green-400" />
           </div>
-        </div>
-      </div>
 
-      {/* Music Tracks */}
-      <div className="bg-white/5 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/10 overflow-hidden">
-        <div className="p-4 md:p-6">
-          <h3 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-4">
-            {selectedCategory === "all"
-              ? "All Tracks"
-              : categories.find(c => c.id === selectedCategory)?.name}
-            <span className="text-white/60 ml-2">
-              ({filteredTracks.length})
-            </span>
-          </h3>
-        </div>
+          {/* SEARCH BAR */}
+          <div className="relative group">
+            <Search
+              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-[#FF3EA5]"
+              size={20}
+            />
 
-        {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left p-4 text-white/60 font-medium text-sm">
-                  #
-                </th>
-                <th className="text-left p-4 text-white/60 font-medium text-sm">
-                  Title
-                </th>
-                <th className="text-left p-4 text-white/60 font-medium text-sm">
-                  Album
-                </th>
-                <th className="text-left p-4 text-white/60 font-medium text-sm">
-                  <Clock className="w-4 h-4 inline" />
-                </th>
-                <th className="text-left p-4 text-white/60 font-medium text-sm">
-                  Plays
-                </th>
-                <th className="text-left p-4 text-white/60 font-medium text-sm"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTracks.map((track, index) => (
-                <motion.tr
-                  key={track.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="group hover:bg-white/5 border-b border-white/5 last:border-0"
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search for songs, artists, or albums..."
+              className="w-full pl-12 md:pl-16 pr-12 md:pr-16 py-3 md:py-5 bg-white border border-gray-200 rounded-2xl text-gray-800 text-base md:text-lg placeholder:text-gray-400 outline-none transition-all duration-300 focus:border-[#FF7ED4] focus:ring-4 focus:ring-[#FFB5DA]/30 shadow-sm hover:shadow-lg"
+            />
+
+            <AnimatePresence>
+              {loading && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2"
                 >
-                  <td className="p-4">
-                    <div className="relative w-8 h-8">
-                      {currentTrack?.id === track.id && isPlaying ? (
-                        <button
-                          onClick={() => handlePlayTrack(track)}
-                          className="absolute inset-0 flex items-center justify-center bg-pink-600 rounded-full"
-                        >
-                          <Pause className="w-3 h-3 text-white" />
-                        </button>
-                      ) : (
-                        <>
-                          <span className="absolute inset-0 flex items-center justify-center text-white/60 group-hover:opacity-0">
-                            {index + 1}
-                          </span>
-                          <button
-                            onClick={() => handlePlayTrack(track)}
-                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-pink-600 rounded-full hover:bg-pink-700 transition-all"
-                          >
-                            <Play className="w-3 h-3 text-white ml-0.5" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                        <TrackImage
-                          src={track.coverUrl}
-                          alt={track.title}
-                          size={48}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <div className="font-medium text-white group-hover:text-pink-400 transition-colors">
-                          {track.title}
-                        </div>
-                        <div className="text-sm text-white/60">
-                          {track.artist}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="text-white/80 text-sm">{track.album}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className="text-white/60 text-sm">
-                      {formatDuration(track.duration)}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="text-white/60 text-sm">
-                      {track.playCount.toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          toggleLikeTrack({
-                            id: track.id,
-                            title: track.title,
-                            artist: track.artist,
-                            url: track.audioUrl,
-                            duration: track.duration,
-                            coverUrl: track.coverUrl || "",
-                            genre: track.genre || "unknown",
-                          })
-                        }
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                      >
-                        <Heart
-                          className={`w-4 h-4 ${
-                            track.liked
-                              ? "fill-red-500 text-red-500"
-                              : "text-white/60 hover:text-white"
-                          }`}
-                        />
-                      </button>
-                      <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                        <MoreVertical className="w-4 h-4 text-white/60 hover:text-white" />
-                      </button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  <Loader2 className="animate-spin text-[#FF3EA5]" size={20} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-        {/* Mobile Card View */}
-        <div className="md:hidden space-y-2 p-4">
-          {filteredTracks.map((track, index) => (
-            <motion.div
-              key={track.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10 active:bg-white/10 transition-colors"
-            >
+          {/* GENRE FILTER */}
+          <div className="mt-6 flex flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-gray-300 mr-4">
+              <Filter size={16} />
+              <span className="text-sm">Filter:</span>
+            </div>
+            {genres.map(genre => (
               <button
-                onClick={() => handlePlayTrack(track)}
-                className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0"
+                key={genre}
+                onClick={() => setSelectedGenre(genre)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  selectedGenre === genre
+                    ? "bg-[#FF3EA5] text-white"
+                    : "bg-white/10 text-gray-300 hover:bg-white/20"
+                }`}
               >
-                <TrackImage
-                  src={track.coverUrl}
-                  alt={track.title}
-                  size={48}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  {currentTrack?.id === track.id && isPlaying ? (
-                    <Pause className="w-5 h-5 text-white" fill="currentColor" />
-                  ) : (
-                    <Play
-                      className="w-5 h-5 text-white ml-0.5"
-                      fill="currentColor"
-                    />
-                  )}
-                </div>
+                {genre === "all" ? "All Genres" : genre}
               </button>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-white truncate text-sm">
-                  {track.title}
-                </h4>
-                <p className="text-xs text-white/60 truncate">{track.artist}</p>
-                <div className="flex items-center gap-2 text-xs text-white/40 mt-1">
-                  <span>{formatDuration(track.duration)}</span>
-                  <span>•</span>
-                  <span>{track.playCount.toLocaleString()} plays</span>
-                </div>
-              </div>
-              <button
-                onClick={() =>
-                  toggleLikeTrack({
-                    id: track.id,
-                    title: track.title,
-                    artist: track.artist,
-                    url: track.audioUrl,
-                    duration: track.duration,
-                    coverUrl: track.coverUrl || "",
-                    genre: track.genre || "unknown",
-                  })
-                }
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <Heart
-                  className={`w-5 h-5 ${
-                    track.liked ? "fill-red-500 text-red-500" : "text-white/60"
-                  }`}
-                />
-              </button>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recently Played */}
-      {recentTracks.length > 0 && (
-        <div>
-          <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 px-4 md:px-0">
-            Recently Played
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-            {recentTracks.map(track => (
-              <motion.div
-                key={track.id}
-                whileHover={{ y: -5 }}
-                className="bg-white/5 hover:bg-white/10 rounded-xl md:rounded-2xl p-3 md:p-4 transition-all cursor-pointer group"
-                onClick={() => {
-                  setCurrentTrack(track);
-                  audioPlayer.play(track);
-                  setIsPlaying(true);
-                }}
-              >
-                <div className="relative aspect-square rounded-lg md:rounded-xl overflow-hidden mb-3 md:mb-4">
-                  <TrackImage
-                    src={track.coverUrl}
-                    alt={track.title}
-                    size={200}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-2 md:bottom-3 left-2 md:left-3 right-2 md:right-3">
-                    <button className="w-8 h-8 md:w-10 md:h-10 bg-purple-600 rounded-full flex items-center justify-center ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                      {currentTrack?.id === track.id && isPlaying ? (
-                        <Pause className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                      ) : (
-                        <Play className="w-3 h-3 md:w-4 md:h-4 text-white ml-0.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-white truncate text-sm md:text-base">
-                    {track.title}
-                  </h4>
-                  <p className="text-xs md:text-sm text-white/60 truncate">
-                    {track.artist}
-                  </p>
-                </div>
-              </motion.div>
             ))}
           </div>
-        </div>
-      )}
+        </motion.div>
+
+        {/* HINDI MUSIC SECTION (Only when viewing all or hindi) */}
+        {view === "all" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="mb-12"
+          >
+            <HindiMusicSection />
+          </motion.div>
+        )}
+
+        {/* UPLOAD SECTION */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-8 md:mb-16"
+        >
+          <label className="group cursor-pointer block">
+            <motion.div
+              whileHover={{ scale: 1.005, y: -2 }}
+              whileTap={{ scale: 0.995 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-linear-to-br from-[#FFB5DA]/20 via-[#FF7ED4]/10 to-[#FF3EA5]/20 border-2 border-dashed border-[#FFB5DA] p-6 md:p-12 transition-all duration-300 hover:border-[#FF3EA5] hover:shadow-xl hover:shadow-[#FFB5DA]/20"
+            >
+              <div className="flex flex-col items-center justify-center gap-4 md:gap-6 text-center">
+                <motion.div
+                  whileHover={{ rotate: 5, scale: 1.1 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-linear-to-br from-[#FF7ED4] to-[#FF3EA5] text-white shadow-lg shadow-[#FF7ED4]/30"
+                >
+                  <Upload size={24} />
+                </motion.div>
+
+                <div>
+                  <h3 className="text-xl md:text-2xl font-medium mb-2">
+                    Upload Your Music
+                  </h3>
+                  <p className="text-slate-300 text-sm md:text-base">
+                    Drag and drop your audio files here, or click to browse
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            <input
+              type="file"
+              accept="audio/*"
+              multiple
+              hidden
+              onChange={handleUpload}
+            />
+          </label>
+        </motion.div>
+
+        {/* TRACKS HEADER */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mb-6"
+        >
+          <h2 className="text-2xl md:text-3xl font-semibold text-white mb-2">
+            {view === "hindi"
+              ? "Hindi Songs"
+              : view === "english"
+                ? "English Songs"
+                : "All Tracks"}
+          </h2>
+          <p className="text-gray-400">
+            {results.length} {results.length === 1 ? "track" : "tracks"} found
+          </p>
+        </motion.div>
+
+        {/* TRACK LIST */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="space-y-4"
+        >
+          <AnimatePresence mode="popLayout">
+            {results.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4 }}
+                className="text-center py-16 md:py-32"
+              >
+                <div className="flex items-center justify-center w-20 h-20 md:w-28 md:h-28 rounded-full bg-linear-to-br from-[#FFB5DA]/20 to-[#FF7ED4]/10 mx-auto mb-4 md:mb-6">
+                  <Music2 className="w-10 h-10 md:w-14 md:h-14 text-[#FF3EA5]" />
+                </div>
+                <p className="text-gray-600 text-lg md:text-xl font-light mb-2">
+                  No tracks found
+                </p>
+                <p className="text-gray-400 text-sm md:text-base">
+                  {query
+                    ? "Try a different search term"
+                    : "Search or upload music to get started"}
+                </p>
+              </motion.div>
+            ) : (
+              results.map((track, index) => (
+                <motion.div
+                  key={track.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  transition={{
+                    duration: 0.4,
+                    delay: index * 0.05,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
+                  layout
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.005, x: 4 }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    className={`
+                      group relative overflow-hidden rounded-xl md:rounded-2xl transition-all duration-300
+                      ${
+                        currentTrack?.id === track.id
+                          ? "bg-linear-to-br from-[#FFB5DA]/30 via-[#FF7ED4]/20 to-[#FF3EA5]/10 shadow-lg shadow-[#FFB5DA]/20 border border-[#FF7ED4]/30"
+                          : "bg-white/80 hover:bg-white hover:shadow-md border border-gray-100"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-4 md:gap-6 p-4 md:p-6">
+                      {/* ALBUM ART OR PLAY BUTTON */}
+                      <div className="relative shrink-0">
+                        {track.coverUrl ? (
+                          <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-lg md:rounded-xl overflow-hidden shadow">
+                            <Image
+                              src={track.coverUrl}
+                              alt={track.title}
+                              width={80}
+                              height={80}
+                              className="w-full h-full object-cover"
+                            />
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => handlePlayTrack(track)}
+                              className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-300"
+                            >
+                              {currentTrack?.id === track.id && isPlaying ? (
+                                <Pause className="text-white" size={20} />
+                              ) : (
+                                <Play className="text-white ml-0.5" size={20} />
+                              )}
+                            </motion.button>
+                          </div>
+                        ) : (
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => handlePlayTrack(track)}
+                            className={`
+                              flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-lg md:rounded-xl transition-all duration-300 shadow
+                              ${
+                                currentTrack?.id === track.id && isPlaying
+                                  ? "bg-linear-to-br from-[#FF7ED4] to-[#FF3EA5] text-white shadow-lg shadow-[#FF7ED4]/40"
+                                  : "bg-gray-100 text-gray-600 hover:bg-linear-to-br hover:from-[#FFB5DA] hover:to-[#FF7ED4] hover:text-white"
+                              }
+                            `}
+                          >
+                            {currentTrack?.id === track.id && isPlaying ? (
+                              <Pause size={16} />
+                            ) : (
+                              <Play size={16} className="ml-0.5" />
+                            )}
+                          </motion.button>
+                        )}
+                      </div>
+
+                      {/* TRACK INFO */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 mb-1">
+                          <h4 className="text-[#6420AA] text-base md:text-lg font-medium truncate">
+                            {track.title}
+                          </h4>
+                          {track.language === "hindi" && (
+                            <span className="px-2 py-0.5 bg-[#FF3EA5]/10 text-[#FF3EA5] text-xs rounded-full shrink-0">
+                              हिंदी
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center flex-wrap gap-2">
+                          <p className="text-gray-500 text-sm md:text-base truncate">
+                            {track.artist}
+                          </p>
+                          {track.album && (
+                            <>
+                              <span className="text-gray-300">•</span>
+                              <p className="text-gray-500 text-sm truncate">
+                                {track.album}
+                              </p>
+                            </>
+                          )}
+                          <span
+                            className={`
+                            px-2 py-0.5 rounded text-xs font-medium shrink-0
+                            ${
+                              track.source === "online"
+                                ? "bg-linear-to-r from-[#FFB5DA] to-[#FF7ED4] text-white"
+                                : track.source === "local"
+                                  ? "bg-gray-200 text-gray-600"
+                                  : "bg-purple-100 text-purple-600"
+                            }
+                          `}
+                          >
+                            {track.source === "online"
+                              ? "Online"
+                              : track.source === "local"
+                                ? "Local"
+                                : "Library"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-2">
+                          {track.duration > 0 && (
+                            <span className="text-gray-400 text-xs flex items-center gap-1">
+                              {formatDuration(track.duration)}
+                            </span>
+                          )}
+                          {track.year && (
+                            <span className="text-gray-400 text-xs">
+                              • {track.year}
+                            </span>
+                          )}
+                          {track.genre && track.genre !== "Local" && (
+                            <span className="text-gray-400 text-xs">
+                              • {track.genre}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* LIKE BUTTON */}
+                      <motion.button
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.85 }}
+                        onClick={() => {
+                          toggleLike(track.id);
+                        }}
+                        className="shrink-0"
+                      >
+                        <Heart
+                          className={`
+                            transition-all duration-300
+                            ${
+                              likedTracks.some(t => t.id === track.id)
+                                ? "fill-[#FF3EA5] text-[#FF3EA5]"
+                                : "text-gray-400 hover:text-[#FF3EA5]"
+                            }
+                          `}
+                          size={20}
+                        />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
     </div>
   );
-};
-
-export default MusicLibrary;
+}

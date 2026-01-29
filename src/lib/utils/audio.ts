@@ -1,14 +1,14 @@
 // In src/lib/utils/audio.ts
-import { AudioTracks } from "@/src/lib/store/playerStore";
+import { AudioTrack } from "@/src/lib/audio/player";
 
 export const createAudioTrack = (
-  data: Partial<AudioTracks> & {
+  data: Partial<AudioTrack> & {
     id: string;
     title: string;
     artist: string;
     url: string;
-  }
-): AudioTracks => {
+  },
+): AudioTrack => {
   return {
     id: data.id,
     title: data.title,

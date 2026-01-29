@@ -14,7 +14,8 @@ import {
   Save,
   User as UserIcon,
   ArrowLeft,
-  ChevronRight,
+  Music2,
+  Clock,
 } from "lucide-react";
 import Image from "next/image";
 import { usePlayerStore } from "@/src/lib/store/playerStore";
@@ -39,55 +40,62 @@ export default function DashboardPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [userProfile, setUserProfile] = useState(MOCK_USER);
 
-  type Mix = {
-    id: string;
-    name: string;
-    createdAt: string | number | Date;
-    bpm?: number;
-  };
+  const handleExportAllMixes = () => {
+    if (mixes.length === 0) return;
 
-  const handleExportMix = (mix: Mix) => {
     const dataStr =
-      "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(mix));
-    const downloadAnchorNode = document.createElement("a");
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `${mix.name}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(mixes, null, 2));
+
+    const a = document.createElement("a");
+    a.href = dataStr;
+    a.download = "studio-beats.json";
+    a.click();
   };
 
   const handleSaveProfile = () => {
     setIsEditing(false);
     console.log("Profile saved:", userProfile);
   };
+  const handleCreatePlaylist = () => {
+    const name = prompt("Enter playlist name");
+    if (!name) return;
+    usePlayerStore.getState().createPlaylist(name);
+  };
+
+  const handleOpenPlaylist = (playlistId: string) => {
+    console.log("Open playlist:", playlistId);
+    // later → router.push(`/playlist/${playlistId}`)
+  };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-950 to-purple-950 text-white pb-32">
+    <div className="min-h-screen bg-[#FF3EA5]/5 pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/40 backdrop-blur-xl border-b border-white/10 px-4 md:px-8 py-4">
+      <div className="sticky backdrop-brightness-75 top-0 z-50 bg-[#000000] px-8 py-5">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <button
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-[#fafafa] hover:text-[#FF3EA5] text-xl transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">Back</span>
+            <span className="hidden sm:inline font-medium">
+              Back to Library
+            </span>
           </button>
-          <h1 className="text-xl md:text-2xl font-bold">Dashboard</h1>
-          <div className="w-20" /> {/* Spacer for centering */}
+          <h1 className="text-2xl font-semibold text-[#FF3EA5]">Profile</h1>
+          <div className="w-32" />
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
+      <div className="max-w-7xl mx-auto px-8 py-12">
         {/* Profile Section */}
-        <div className="mb-8">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl md:rounded-3xl p-6 md:p-8">
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+        <div className="mb-12">
+          <div className="bg-white border border-[#e5e5e5] rounded-2xl p-10">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
               {/* Avatar */}
-              <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white/10 overflow-hidden shadow-2xl shrink-0">
-                <div className="absolute inset-0 bg-linear-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                  <UserIcon size={48} className="text-white/30" />
+              <div className="relative w-32 h-32 md:w-36 md:h-36 rounded-xl overflow-hidden shrink-0">
+                <div className="absolute inset-0 bg-[#6420AA] flex items-center justify-center">
+                  <UserIcon size={56} className="text-white/40" />
                 </div>
               </div>
 
@@ -100,14 +108,14 @@ export default function DashboardPage() {
                       onChange={e =>
                         setUserProfile({ ...userProfile, name: e.target.value })
                       }
-                      className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white text-xl font-bold focus:outline-none focus:border-purple-500"
+                      className="w-full bg-white border border-[#e5e5e5] rounded-lg px-4 py-3 text-[#1a1a1a] text-xl font-semibold focus:outline-none focus:border-[#FF3EA5]"
                     />
                     <textarea
                       value={userProfile.bio}
                       onChange={e =>
                         setUserProfile({ ...userProfile, bio: e.target.value })
                       }
-                      className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500 h-20 resize-none"
+                      className="w-full bg-white border border-[#e5e5e5] rounded-lg px-4 py-3 text-[#666666] focus:outline-none focus:border-[#FF3EA5] h-20 resize-none"
                     />
                     <input
                       type="number"
@@ -118,23 +126,25 @@ export default function DashboardPage() {
                           age: parseInt(e.target.value),
                         })
                       }
-                      className="w-24 bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                      className="w-24 bg-white border border-[#e5e5e5] rounded-lg px-4 py-3 text-[#666666] focus:outline-none focus:border-[#FF3EA5]"
                     />
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                    <h2 className="text-4xl font-semibold text-[#1a1a1a] mb-3">
                       {userProfile.name}
                     </h2>
-                    <p className="text-white/70 mb-3">{userProfile.bio}</p>
-                    <div className="flex items-center justify-center md:justify-start gap-4 text-sm">
-                      <span className="px-3 py-1 bg-purple-500/20 rounded-full">
+                    <p className="text-[#666666] text-base mb-6 max-w-2xl">
+                      {userProfile.bio}
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                      <span className="px-4 py-2 bg-[#f5f5f5] rounded-lg text-[#1a1a1a] font-medium text-sm">
                         Age: {userProfile.age}
                       </span>
-                      <span className="px-3 py-1 bg-pink-500/20 rounded-full">
+                      <span className="px-4 py-2 bg-[#f5f5f5] rounded-lg text-[#1a1a1a] font-medium text-sm">
                         {mixes.length} Beats Created
                       </span>
-                      <span className="px-3 py-1 bg-blue-500/20 rounded-full">
+                      <span className="px-4 py-2 bg-[#f5f5f5] rounded-lg text-[#1a1a1a] font-medium text-sm">
                         {likedTracks.length} Liked Songs
                       </span>
                     </div>
@@ -143,20 +153,20 @@ export default function DashboardPage() {
               </div>
 
               {/* Edit Button */}
-              <div className="flex gap-3">
+              <div className="flex gap-3 shrink-0">
                 {isEditing ? (
                   <button
                     onClick={handleSaveProfile}
-                    className="px-6 py-2 bg-white text-black rounded-full font-bold text-sm flex items-center gap-2 hover:bg-gray-200 transition-colors"
+                    className="px-6 py-3 bg-[#FF3EA5] text-white rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-[#FF7ED4] transition-colors"
                   >
-                    <Save size={16} /> Save
+                    <Save size={18} /> Save Profile
                   </button>
                 ) : (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="px-6 py-2 border border-white/20 rounded-full font-bold text-sm flex items-center gap-2 hover:bg-white/10 transition-colors"
+                    className="px-6 py-3 border border-[#e5e5e5] text-[#1a1a1a] rounded-lg font-medium text-sm flex items-center gap-2 hover:border-[#FF3EA5] hover:text-[#FF3EA5] transition-colors"
                   >
-                    <Edit3 size={16} /> Edit Profile
+                    <Edit3 size={18} /> Edit Profile
                   </button>
                 )}
               </div>
@@ -165,51 +175,51 @@ export default function DashboardPage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mb-6 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
-          <div className="flex gap-2 md:gap-4 min-w-max md:min-w-0">
+        <div className="mb-10">
+          <div className="flex flex-wrap gap-3">
             {[
               {
                 id: "fav",
-                label: "Fav Music",
-                icon: <Heart className="w-4 h-4" />,
+                label: "Favorite Music",
+                icon: <Heart className="w-5 h-5" />,
               },
               {
                 id: "liked",
-                label: "Liked Music",
-                icon: <Heart className="w-4 h-4 fill-current" />,
+                label: "Liked Songs",
+                icon: <Heart className="w-5 h-5 fill-current" />,
               },
               {
                 id: "playlist",
                 label: "Playlists",
-                icon: <ListMusic className="w-4 h-4" />,
+                icon: <ListMusic className="w-5 h-5" />,
               },
               {
                 id: "studio",
                 label: "Studio Beats",
-                icon: <Mic2 className="w-4 h-4" />,
+                icon: <Mic2 className="w-5 h-5" />,
               },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`
-                  px-4 md:px-6 py-2 md:py-3 rounded-full border border-white/20 flex items-center gap-2 transition-all whitespace-nowrap text-sm md:text-base
+                  px-5 py-3 rounded-lg flex items-center gap-2 transition-all font-medium text-sm border
                   ${
                     activeTab === tab.id
-                      ? "bg-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-                      : "bg-transparent text-white/60 hover:bg-white/10 hover:text-white"
+                      ? "bg-[#FF3EA5] text-white border-[#FF3EA5]"
+                      : "bg-white text-[#666666] border-[#e5e5e5] hover:border-[#FF3EA5] hover:text-[#FF3EA5]"
                   }
                 `}
               >
                 {tab.icon}
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span>{tab.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Content Area */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl p-4 md:p-6 min-h-[500px]">
+        <div className="bg-white border border-[#e5e5e5] rounded-2xl p-10 min-h-[600px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -220,55 +230,60 @@ export default function DashboardPage() {
             >
               {/* STUDIO MIXES */}
               {activeTab === "studio" && (
-                <div>
-                  <h3 className="text-lg md:text-xl font-bold mb-4">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-2xl font-semibold text-[#1a1a1a]">
                     Your Studio Beats
                   </h3>
                   {mixes.length > 0 ? (
-                    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-                      <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 min-w-max md:min-w-0 pb-4 md:pb-0">
-                        {mixes.map(mix => (
-                          <div
-                            key={mix.id}
-                            className="bg-gray-900/50 p-6 rounded-2xl border border-white/10 group hover:border-purple-500/50 transition-colors min-w-[280px] md:min-w-0"
-                          >
-                            <div className="flex justify-between items-start mb-4">
-                              <div className="p-3 bg-purple-600/20 rounded-xl">
-                                <Mic2 className="w-6 h-6 text-purple-400" />
-                              </div>
-                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={() => handleExportMix(mix)}
-                                  title="Export JSON"
-                                  className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-green-400"
-                                >
-                                  <Download size={18} />
-                                </button>
-                                <button
-                                  onClick={() => deleteMix(mix.id)}
-                                  className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-red-400"
-                                >
-                                  <Trash2 size={18} />
-                                </button>
-                              </div>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {mixes.map((mix, index) => (
+                        <motion.div
+                          key={mix.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="bg-white border border-[#e5e5e5] p-6 rounded-xl group hover:border-[#FF3EA5] transition-all"
+                        >
+                          <div className="flex justify-between items-start mb-5">
+                            <div className="flex items-center justify-center w-14 h-14 bg-[#f5f5f5] rounded-lg">
+                              <Mic2 className="w-7 h-7 text-[#FF3EA5]" />
                             </div>
-                            <h3 className="text-xl font-bold mb-2">
-                              {mix.name}
-                            </h3>
-                            <p className="text-white/40 text-sm mb-4">
-                              {new Date(mix.createdAt).toLocaleDateString()}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs text-white/60 bg-white/5 p-2 rounded-lg w-fit">
-                              <span>{mix.bpm} BPM</span>
-                              <span>•</span>
-                              <span>16 Steps</span>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={handleExportAllMixes}
+                                title="Export JSON"
+                                className="px-5 py-3 border border-[#e5e5e5] rounded-lg text-[#1a1a1a] hover:border-[#FF3EA5] hover:text-[#FF3EA5]"
+                              >
+                                <Download size={18} />
+                              </button>
+                              <button
+                                onClick={() => deleteMix(mix.id)}
+                                className="p-2 hover:bg-[#fff0f7] rounded-lg text-[#999999] hover:text-[#FF3EA5]"
+                              >
+                                <Trash2 size={18} />
+                              </button>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                          <h4 className="text-lg font-semibold text-[#1a1a1a] mb-2 truncate">
+                            {mix.name}
+                          </h4>
+                          <p className="text-[#999999] text-sm mb-5 flex items-center gap-2">
+                            <Clock size={14} />
+                            {new Date(mix.createdAt).toLocaleDateString()}
+                          </p>
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="px-3 py-1.5 bg-[#f5f5f5] text-[#1a1a1a] rounded-lg font-medium">
+                              {mix.bpm} BPM
+                            </span>
+                            <span className="px-3 py-1.5 bg-[#f5f5f5] text-[#1a1a1a] rounded-lg font-medium">
+                              16 Steps
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
                   ) : (
-                    <EmptyState message="No beats created yet. Go to Studio!" />
+                    <EmptyState message="No beats created yet. Head to the Studio!" />
                   )}
                 </div>
               )}
@@ -276,53 +291,69 @@ export default function DashboardPage() {
               {/* PLAYLISTS */}
               {activeTab === "playlist" && (
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold mb-4">
-                    Your Playlists
-                  </h3>
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-semibold text-[#1a1a1a]">
+                      Your Playlists
+                    </h3>
+
+                    <button
+                      onClick={handleCreatePlaylist}
+                      className="px-5 py-3 bg-[#FF3EA5] text-white rounded-lg font-medium hover:bg-[#FF7ED4] transition"
+                    >
+                      + Create Playlist
+                    </button>
+                  </div>
+
                   {playlists.length > 0 ? (
-                    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-                      <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 min-w-max md:min-w-0 pb-4 md:pb-0">
-                        {playlists.map(playlist => (
-                          <div
-                            key={playlist.id}
-                            className="relative aspect-square bg-gray-800 rounded-2xl overflow-hidden group border border-white/10 min-w-[200px] md:min-w-0"
-                          >
-                            {playlist.tracks[0]?.coverUrl ? (
-                              <Image
-                                src={playlist.tracks[0].coverUrl}
-                                alt={playlist.name}
-                                fill
-                                className="object-cover opacity-60 group-hover:opacity-40 transition-opacity"
-                                unoptimized
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-purple-600 to-pink-600">
-                                <ListMusic className="w-12 h-12 text-white/20" />
-                              </div>
-                            )}
-                            <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                              <h3 className="text-2xl font-bold truncate">
-                                {playlist.name}
-                              </h3>
-                              <p className="text-white/60">
-                                {playlist.tracks.length} Songs
-                              </p>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                      {playlists.map((playlist, index) => (
+                        <motion.div
+                          key={playlist.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          onClick={() => handleOpenPlaylist(playlist.id)}
+                          className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group border border-[#e5e5e5] hover:border-[#FF3EA5]"
+                        >
+                          {playlist.tracks[0]?.coverUrl ? (
+                            <Image
+                              src={playlist.tracks[0].coverUrl}
+                              alt={playlist.name}
+                              fill
+                              className="object-cover opacity-70 group-hover:opacity-50"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center bg-[#6420AA]">
+                              <ListMusic className="w-16 h-16 text-white/30" />
                             </div>
-                            <button
-                              onClick={() => deletePlaylist(playlist.id)}
-                              className="absolute top-4 right-4 p-2 bg-black/50 backdrop-blur-md rounded-full text-white/60 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 size={18} />
-                            </button>
+                          )}
+
+                          <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
+                          <div className="absolute inset-0 p-5 flex flex-col justify-end">
+                            <h4 className="text-lg font-semibold text-white truncate">
+                              {playlist.name}
+                            </h4>
+                            <p className="text-white/80 text-sm">
+                              {playlist.tracks.length} Songs
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                      <button className="mt-4 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors md:hidden">
-                        <ChevronRight />
-                      </button>
+
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              deletePlaylist(playlist.id);
+                            }}
+                            className="absolute top-3 right-3 p-2 bg-white/90 rounded-lg text-[#999] hover:text-[#FF3EA5] opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </motion.div>
+                      ))}
                     </div>
                   ) : (
-                    <EmptyState message="No playlists found." />
+                    <EmptyState message="No playlists found. Create one to get started!" />
                   )}
                 </div>
               )}
@@ -330,37 +361,50 @@ export default function DashboardPage() {
               {/* LIKED/FAV MUSIC */}
               {(activeTab === "liked" || activeTab === "fav") && (
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold mb-4">
+                  <h3 className="text-2xl font-semibold text-[#1a1a1a] mb-8">
                     {activeTab === "liked" ? "Liked Songs" : "Favorite Music"}
                   </h3>
                   {likedTracks.length > 0 ? (
-                    <div className="space-y-2">
-                      {likedTracks.map(track => (
-                        <div
+                    <div className="space-y-3">
+                      {likedTracks.map((track, index) => (
+                        <motion.div
                           key={track.id}
-                          className="flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          className="flex items-center gap-5 bg-white border border-[#e5e5e5] p-5 rounded-xl hover:border-[#FFB5DA] transition-all"
                         >
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                            <div className="absolute inset-0 bg-linear-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                              <ListMusic className="w-6 h-6 text-white/30" />
-                            </div>
+                          <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0">
+                            {track.coverUrl ? (
+                              <Image
+                                src={track.coverUrl}
+                                alt={track.title}
+                                width={56} // Add width
+                                height={56} // Add height
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 bg-[#6420AA] flex items-center justify-center">
+                                <Music2 className="w-6 h-6 text-white/40" />
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold truncate">
+                            <h4 className="font-semibold text-[#1a1a1a] truncate">
                               {track.title}
                             </h4>
-                            <p className="text-xs text-white/60 truncate">
+                            <p className="text-[#666666] text-sm truncate">
                               {track.artist}
                             </p>
                           </div>
-                          <button className="p-2 bg-white text-black rounded-full hover:scale-105 transition-transform">
-                            <Play size={14} fill="currentColor" />
+                          <button className="p-3 bg-[#FF3EA5] text-white rounded-lg hover:bg-[#FF7ED4] transition-colors">
+                            <Play size={16} fill="currentColor" />
                           </button>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   ) : (
-                    <EmptyState message="No liked songs yet." />
+                    <EmptyState message="No liked songs yet. Start exploring music!" />
                   )}
                 </div>
               )}
@@ -374,11 +418,11 @@ export default function DashboardPage() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="col-span-full flex flex-col items-center justify-center py-20 text-white/40 gap-4">
-      <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-        <ListMusic size={32} className="opacity-50" />
+    <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div className="w-20 h-20 rounded-full bg-[#f5f5f5] flex items-center justify-center">
+        <Music2 size={32} className="text-[#cccccc]" />
       </div>
-      <p>{message}</p>
+      <p className="text-[#999999] text-base">{message}</p>
     </div>
   );
 }
