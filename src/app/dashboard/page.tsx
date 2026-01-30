@@ -57,6 +57,7 @@ export default function DashboardPage() {
     setIsEditing(false);
     console.log("Profile saved:", userProfile);
   };
+
   const handleCreatePlaylist = () => {
     const name = prompt("Enter playlist name");
     if (!name) return;
@@ -94,8 +95,8 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
               {/* Avatar */}
               <div className="relative w-32 h-32 md:w-36 md:h-36 rounded-xl overflow-hidden shrink-0">
-                <div className="absolute inset-0 bg-[#6420AA] flex items-center justify-center">
-                  <UserIcon size={56} className="text-white/40" />
+                <div className="absolute inset-0 bg-[#7c17e2] flex items-center justify-center">
+                  <UserIcon size={56} className="text-white/90" />
                 </div>
               </div>
 
@@ -174,19 +175,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="mb-10">
+        {/* Navigation Tabs - MOVED ABOVE CONTENT */}
+        <div className="mb-6">
           <div className="flex flex-wrap gap-3">
             {[
-              {
-                id: "fav",
-                label: "Favorite Music",
-                icon: <Heart className="w-5 h-5" />,
-              },
               {
                 id: "liked",
                 label: "Liked Songs",
                 icon: <Heart className="w-5 h-5 fill-current" />,
+              },
+              {
+                id: "fav",
+                label: "Favorite Music",
+                icon: <Heart className="w-5 h-5" />,
               },
               {
                 id: "playlist",
@@ -218,7 +219,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Content Area */}
+        {/* Content Area - NOW DIRECTLY BELOW TABS */}
         <div className="bg-white border border-[#e5e5e5] rounded-2xl p-10 min-h-[600px]">
           <AnimatePresence mode="wait">
             <motion.div
@@ -230,10 +231,22 @@ export default function DashboardPage() {
             >
               {/* STUDIO MIXES */}
               {activeTab === "studio" && (
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-2xl font-semibold text-[#1a1a1a]">
-                    Your Studio Beats
-                  </h3>
+                <div>
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-semibold text-[#1a1a1a]">
+                      Your Studio Beats
+                    </h3>
+                    {mixes.length > 0 && (
+                      <button
+                        onClick={handleExportAllMixes}
+                        className="px-5 py-3 border border-[#e5e5e5] rounded-lg text-[#1a1a1a] hover:border-[#FF3EA5] hover:text-[#FF3EA5] flex items-center gap-2"
+                      >
+                        <Download size={18} />
+                        Export All
+                      </button>
+                    )}
+                  </div>
+
                   {mixes.length > 0 ? (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                       {mixes.map((mix, index) => (
@@ -248,21 +261,12 @@ export default function DashboardPage() {
                             <div className="flex items-center justify-center w-14 h-14 bg-[#f5f5f5] rounded-lg">
                               <Mic2 className="w-7 h-7 text-[#FF3EA5]" />
                             </div>
-                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={handleExportAllMixes}
-                                title="Export JSON"
-                                className="px-5 py-3 border border-[#e5e5e5] rounded-lg text-[#1a1a1a] hover:border-[#FF3EA5] hover:text-[#FF3EA5]"
-                              >
-                                <Download size={18} />
-                              </button>
-                              <button
-                                onClick={() => deleteMix(mix.id)}
-                                className="p-2 hover:bg-[#fff0f7] rounded-lg text-[#999999] hover:text-[#FF3EA5]"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => deleteMix(mix.id)}
+                              className="p-2 hover:bg-[#fff0f7] rounded-lg text-[#999999] hover:text-[#FF3EA5] opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={18} />
+                            </button>
                           </div>
                           <h4 className="text-lg font-semibold text-[#1a1a1a] mb-2 truncate">
                             {mix.name}
@@ -379,8 +383,8 @@ export default function DashboardPage() {
                               <Image
                                 src={track.coverUrl}
                                 alt={track.title}
-                                width={56} // Add width
-                                height={56} // Add height
+                                width={56}
+                                height={56}
                                 className="w-full h-full object-cover"
                               />
                             ) : (

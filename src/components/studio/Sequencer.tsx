@@ -433,7 +433,7 @@ const Sequencer: React.FC = () => {
           {/* Save Button */}
           <button
             onClick={() => setShowSaveDialog(true)}
-            className="p-2.5 md:p-3 bg-purple-600 rounded-full text-white hover:bg-purple-700 transition-colors"
+            className="p-2.5 md:p-3 bg-pink-500 rounded-full text-white hover:bg-pink-600 transition-colors"
             title="Save Beat"
           >
             <Save size={18} />

@@ -1,20 +1,31 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useEffect } from "react"; // Add useEffect
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Play, Heart, MoreVertical, Clock, Globe } from "lucide-react";
+import { Play, Heart, Clock, Globe } from "lucide-react";
 import Image from "next/image";
-import { usePlayerStore, type LibraryTrack } from "@/src/lib/store/playerStore";
+import {
+  usePlayerStore,
+  type LibraryTrack,
+} from "@/src/lib/store/playerStore";
+import { audioPlayer } from "@/src/lib/audio/player";
+import { createAudioTrack } from "@/src/lib/utils/audio";
 
 export default function HindimusicSection() {
-  const {  playTrack, toggleLike, likedTracks, getHindiSongs } =
-    usePlayerStore();
+  const {
+    likedTracks,
+    toggleLike,
+    getHindiSongs,
+    setCurrentTrack,
+    setIsPlaying,
+    currentTrack,
+    isPlaying,
+  } = usePlayerStore();
 
   const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [isMounted, setIsMounted] = useState(false); // Add mounted state
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Get Hindi songs from the store
   const hindiSongs = getHindiSongs();
 
   const filters = [
@@ -25,12 +36,12 @@ export default function HindimusicSection() {
     { id: "sad", label: "Sad" },
   ];
 
-const filteredSongs =
-  activeFilter === "all"
-    ? hindiSongs
-    : hindiSongs.filter(song =>
-        song.genre?.toLowerCase().includes(activeFilter.toLowerCase()),
-      );
+  const filteredSongs =
+    activeFilter === "all"
+      ? hindiSongs
+      : hindiSongs.filter(song =>
+          song.genre?.toLowerCase().includes(activeFilter.toLowerCase()),
+        );
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -38,72 +49,69 @@ const filteredSongs =
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Use useEffect to set mounted state
+  // Fixed play handler - same as musicLibrary.tsx
+  const handlePlayTrack = (track: LibraryTrack) => {
+    if (!track.url) {
+      alert("Audio unavailable");
+      return;
+    }
+
+    // If same track is playing, pause it
+    if (currentTrack?.id === track.id && isPlaying) {
+      audioPlayer.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    // Create audio track and play
+    const audioTrack = createAudioTrack({
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      url: track.url,
+      duration: track.duration,
+      coverUrl: track.coverUrl || "",
+      genre: track.genre || "unknown",
+    });
+
+    setCurrentTrack(audioTrack);
+    audioPlayer.play(audioTrack);
+    setIsPlaying(true);
+  };
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Don't render anything during SSR
-  if (!isMounted) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Globe className="w-5 h-5 text-purple-500" />
-              <h2 className="text-2xl font-bold text-white">
-                Hindi Bollywood Hits
-              </h2>
-            </div>
-            <p className="text-gray-400">Your favorite Bollywood tracks</p>
-          </div>
-          <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
-            View All
-          </button>
-        </div>
-
-        {/* Loading skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white/5 backdrop-blur-sm rounded-xl p-4 animate-pulse"
-            >
-              <div className="aspect-square rounded-lg bg-gray-700 mb-4"></div>
-              <div className="h-4 bg-gray-700 rounded mb-2"></div>
-              <div className="h-3 bg-gray-700 rounded w-3/4"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (!isMounted) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-2">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Globe className="w-5 h-5 text-purple-500" />
+            <Globe className="w-5 h-5 text-pink-500" />
             <h2 className="text-2xl font-bold text-white">
               Hindi Bollywood Hits
             </h2>
           </div>
-          <p className="text-gray-400">Your favorite Bollywood tracks</p>
+          <p className="text-gray-400 text-sm md:text-base">
+            Your favorite Bollywood tracks
+          </p>
         </div>
-        <button className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors">
+        <button className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors text-sm md:text-base">
           View All
         </button>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 px-2 scrollbar-hide">
         {filters.map(filter => (
           <button
             key={filter.id}
             onClick={() => setActiveFilter(filter.id)}
-            className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-colors ${
+            className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-colors text-sm ${
               activeFilter === filter.id
                 ? "bg-white text-black"
                 : "bg-white/10 text-white hover:bg-white/20"
@@ -114,54 +122,64 @@ const filteredSongs =
         ))}
       </div>
 
-      {/* Songs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Responsive Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
         {filteredSongs.map((song: LibraryTrack, index: number) => (
           <motion.div
             key={song.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="bg-white/5 backdrop-blur-sm rounded-xl p-4 hover:bg-white/10 transition-all group"
+            className="bg-white/5 backdrop-blur-sm rounded-xl p-3 md:p-4 hover:bg-white/10 transition-all group"
           >
-            {/* Album Cover */}
-            <div className="relative mb-4">
-              <div className="aspect-square rounded-lg overflow-hidden">
+            {/* CLICKABLE Album Cover Area */}
+            <div
+              className="relative mb-3 md:mb-4 cursor-pointer"
+              onClick={() => handlePlayTrack(song)} // Fixed: Now uses handlePlayTrack
+            >
+              <div className="aspect-square rounded-lg overflow-hidden shadow-lg">
                 {song.coverUrl ? (
                   <Image
                     src={song.coverUrl}
                     alt={song.title}
                     width={300}
                     height={300}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
                   <div className="w-full h-full bg-linear-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                    <span className="text-white font-bold">🎵</span>
+                    <span className="text-white font-bold text-2xl">🎵</span>
                   </div>
                 )}
               </div>
 
               {/* Play Button Overlay */}
-              <button
-                onClick={() => playTrack(song)}
-                className="absolute bottom-2 right-2 w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-purple-700"
-              >
-                <Play size={20} className="text-white ml-1" fill="white" />
-              </button>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button className="w-10 h-10 md:w-12 md:h-12 bg-pink-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-xl">
+                  <Play size={20} className="text-white ml-1" fill="white" />
+                </button>
+              </div>
             </div>
 
             {/* Song Info */}
-            <div className="space-y-2">
-              <h3 className="font-semibold text-white truncate">
+            <div className="space-y-1 md:space-y-2">
+              <h3
+                className="font-semibold text-white truncate text-sm md:text-base"
+                title={song.title}
+              >
                 {song.title}
               </h3>
-              <p className="text-gray-400 text-sm truncate">{song.artist}</p>
+              <p className="text-gray-400 text-xs md:text-sm truncate">
+                {song.artist}
+              </p>
 
               <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 md:gap-3">
                   <button
-                    onClick={() => toggleLike(song.id)}
+                    onClick={e => {
+                      e.stopPropagation();
+                      toggleLike(song.id);
+                    }}
                     className="text-gray-400 hover:text-pink-500 transition-colors"
                   >
                     <Heart
@@ -173,29 +191,16 @@ const filteredSongs =
                       }
                     />
                   </button>
-                  <span className="text-gray-400 text-sm flex items-center gap-1">
-                    <Clock size={14} />
+                  <span className="text-gray-500 text-xs flex items-center gap-1">
+                    <Clock size={12} />
                     {formatDuration(song.duration)}
                   </span>
                 </div>
-
-                <button className="text-gray-400 hover:text-white">
-                  <MoreVertical size={18} />
-                </button>
               </div>
             </div>
           </motion.div>
         ))}
       </div>
-
-      {/* If no Hindi songs found */}
-      {filteredSongs.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-400">
-            No Hindi songs found. Add some to your library!
-          </p>
-        </div>
-      )}
     </div>
   );
 }

@@ -82,7 +82,7 @@ const PianoKeyboard: React.FC = () => {
                 onClick={() => setInstrumentType(type)}
                 className={`px-3 py-1 rounded-md text-sm capitalize transition-all ${
                   instrumentType === type
-                    ? "bg-purple-600 text-white shadow-lg"
+                    ? "bg-pink-600 text-white shadow-lg"
                     : "text-white/60 hover:text-white"
                 }`}
               >
