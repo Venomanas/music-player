@@ -1,7 +1,8 @@
 # 🎵 Music Player
 
 A modern, feature-rich web music player built with Next.js and React, supporting multi-language song collections with an intuitive user interface.
-preview : <img width="902" height="487" alt="image" src="https://github.com/user-attachments/assets/d9bbdb0d-243d-4d3a-b3cf-d9df2e58b666" />
+preview : <img width="902" height="487" alt="image" src="" />
+[![Musishama]([https://github.com/user-attachments/assets/a157c109-539a-47b0-b79b-ec29ac474424](https://github.com/user-attachments/assets/d9bbdb0d-243d-4d3a-b3cf-d9df2e58b666))](https://music-player-delta-wheat.vercel.app/)
 
 ## 🚀 Technology Stack
 
