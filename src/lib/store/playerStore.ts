@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { AudioTrack } from "@/src/lib/audio/player";
+import { AudioTrack, audioPlayer } from "@/src/lib/audio/player";
 import { supabase } from "@/src/lib/supabase/client";
 import { HindiSong, hindiSongs } from "@/src/data/hindiSongs";
 /* -------------------------------- TYPES -------------------------------- */
@@ -61,6 +61,8 @@ export interface AppState {
   queue: AudioTrack[];
   repeat: "none" | "one" | "all";
   shuffle: boolean;
+  playbackList: AudioTrack[];
+  playbackIndex: number;
 
   /* ---------------- LIBRARY ---------------- */
   libraryTracks: LibraryTrack[];
@@ -88,6 +90,9 @@ export interface AppState {
   clearQueue: () => void;
   toggleRepeat: () => void;
   toggleShuffle: () => void;
+  setPlaybackListState: (tracks: AudioTrack[], index: number) => void;
+  playNext: () => void;
+  playPrevious: () => void;
 
   /* Library actions */
   addToLibrary: (track: LibraryTrack) => void;
@@ -183,6 +188,8 @@ export const usePlayerStore = create<AppState>()(
       queue: [],
       repeat: "none",
       shuffle: false,
+      playbackList: [],
+      playbackIndex: -1,
 
       /* LIBRARY */
       libraryTracks: [...INITIAL_LIBRARY, ...HINDI_LIBRARY_FROM_LOCAL],
@@ -209,17 +216,50 @@ export const usePlayerStore = create<AppState>()(
 
       clearQueue: () => set({ queue: [] }),
 
-      toggleRepeat: () =>
-        set(state => ({
-          repeat:
-            state.repeat === "none"
-              ? "one"
-              : state.repeat === "one"
-                ? "all"
-                : "none",
-        })),
+      toggleRepeat: () => {
+        const state = get();
+        const newRepeat =
+          state.repeat === "none"
+            ? "one"
+            : state.repeat === "one"
+              ? "all"
+              : "none";
+        audioPlayer.setRepeatMode(newRepeat);
+        set({ repeat: newRepeat });
+      },
 
-      toggleShuffle: () => set(state => ({ shuffle: !state.shuffle })),
+      toggleShuffle: () => {
+        const newShuffle = !get().shuffle;
+        audioPlayer.setShuffleMode(newShuffle);
+        set({ shuffle: newShuffle });
+      },
+
+      setPlaybackListState: (tracks, index) => {
+        set({ playbackList: tracks, playbackIndex: index });
+        audioPlayer.setPlaybackList(tracks, index);
+      },
+
+      playNext: () => {
+        const nextTrack = audioPlayer.next();
+        if (nextTrack) {
+          set({
+            currentTrack: nextTrack,
+            isPlaying: true,
+            playbackIndex: audioPlayer.getCurrentIndex(),
+          });
+        }
+      },
+
+      playPrevious: () => {
+        const prevTrack = audioPlayer.previous();
+        if (prevTrack) {
+          set({
+            currentTrack: prevTrack,
+            isPlaying: true,
+            playbackIndex: audioPlayer.getCurrentIndex(),
+          });
+        }
+      },
 
       /* ---------------- PLAYER ACTIONS ---------------- */
 

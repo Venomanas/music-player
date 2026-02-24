@@ -97,6 +97,7 @@ export default function MusicLibrary() {
     createPlaylist,
     addToPlaylist,
     removeFromPlaylist,
+    setPlaybackListState,
   } = usePlayerStore();
 
   const [view, setView] = useState<"all" | "hindi" | "english">("all");
@@ -272,6 +273,21 @@ export default function MusicLibrary() {
       genre: track.genre || "unknown",
     });
 
+    // Build playback list from current results for next/previous
+    const allAudioTracks = results.map(t =>
+      createAudioTrack({
+        id: t.id,
+        title: t.title,
+        artist: t.artist,
+        url: t.url,
+        duration: t.duration,
+        coverUrl: t.coverUrl || "",
+        genre: t.genre || "unknown",
+      }),
+    );
+    const clickedIndex = allAudioTracks.findIndex(t => t.id === track.id);
+    setPlaybackListState(allAudioTracks, clickedIndex >= 0 ? clickedIndex : 0);
+
     setCurrentTrack(audioTrack);
     audioPlayer.play(audioTrack);
     setIsPlaying(true);
@@ -373,7 +389,7 @@ export default function MusicLibrary() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
             <div>
               <h1 className="text-4xl md:text-6xl font-semibold text-[#FF3EA5] mb-2 md:mb-3 tracking-tight">
-                Music Library
+                Vibe with Music
               </h1>
               <p className="text-lg md:text-xl text-slate-100 font-light">
                 Discover and enjoy your favorite sounds
@@ -417,7 +433,7 @@ export default function MusicLibrary() {
           </div>
 
           {/* SEARCH BAR */}
-          <div className="relative group">
+          {/* <div className="relative group">
             <Search
               className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-[#FF3EA5]"
               size={20}
@@ -443,28 +459,9 @@ export default function MusicLibrary() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </div> */}
 
           {/* GENRE FILTER */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            <div className="flex items-center gap-2 text-gray-300 mr-4">
-              <Filter size={16} />
-              <span className="text-sm">Filter:</span>
-            </div>
-            {genres.map(genre => (
-              <button
-                key={genre}
-                onClick={() => setSelectedGenre(genre)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  selectedGenre === genre
-                    ? "bg-[#FF3EA5] text-white"
-                    : "bg-white/10 text-gray-300 hover:bg-white/20"
-                }`}
-              >
-                {genre === "all" ? "All Genres" : genre}
-              </button>
-            ))}
-          </div>
         </motion.div>
 
         {/* HINDI MUSIC SECTION (Only when viewing all or hindi) */}

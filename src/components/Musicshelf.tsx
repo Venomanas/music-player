@@ -14,6 +14,7 @@ export default function MusicShelf() {
     isPlaying,
     setCurrentTrack,
     setIsPlaying,
+    setPlaybackListState,
   } = usePlayerStore();
 
   const tracks = libraryTracks.slice(0, 10); // 👈 first 10 for all users
@@ -34,6 +35,21 @@ export default function MusicShelf() {
       coverUrl: track.coverUrl || "",
       genre: track.genre || "unknown",
     });
+
+    // Build playback list from shelf tracks
+    const allAudioTracks = tracks.map(t =>
+      createAudioTrack({
+        id: t.id,
+        title: t.title,
+        artist: t.artist,
+        url: t.url,
+        duration: t.duration,
+        coverUrl: t.coverUrl || "",
+        genre: t.genre || "unknown",
+      }),
+    );
+    const clickedIndex = allAudioTracks.findIndex(t => t.id === track.id);
+    setPlaybackListState(allAudioTracks, clickedIndex >= 0 ? clickedIndex : 0);
 
     setCurrentTrack(audioTrack);
     audioPlayer.play(audioTrack);

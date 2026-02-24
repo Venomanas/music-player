@@ -26,10 +26,10 @@ export default function HomePage() {
         <div className="flex items-center justify-between gap-3">
           {/* Logo */}
           <div className="flex items-center gap-2 md:gap-3 shrink-0">
-            <div className="p-2 md:p-3 bg-linear-to-r from-purple-600 to-pink-600 rounded-lg md:rounded-xl">
+            <div className="p-2 md:p-3 bg-[#FF3EA5] rounded-lg md:rounded-xl">
               <Music className="w-5 h-5 md:w-8 md:h-8" />
             </div>
-            <h1 className="text-xl md:text-3xl font-bold">MusicStream</h1>
+            <h1 className="text-xl md:text-3xl font-bold">Music Vault</h1>
           </div>
           {/* Navigation Buttons */}
           <div className="flex gap-1.5 md:gap-2">
@@ -68,7 +68,7 @@ export default function HomePage() {
         </div>
         <p className="text-white/70 mt-3 md:mt-4 text-xs md:text-base px-0.5">
           {activeTab === "stream"
-            ? "Discover and stream music from around the world"
+            ? "Upload your music files and stream anytime"
             : "Create your own music with virtual instruments and mixing tools"}
         </p>
       </header>

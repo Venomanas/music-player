@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/immutability */
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play,
@@ -36,6 +36,9 @@ const EnhancedAudioPlayer: React.FC = () => {
     toggleShuffle,
     toggleLikeTrack,
     likedTracks,
+    playNext,
+    playPrevious,
+    setCurrentTrack,
   } = usePlayerStore();
 
   const [currentTime, setCurrentTime] = useState(0);
@@ -49,11 +52,39 @@ const EnhancedAudioPlayer: React.FC = () => {
     }
   }, [currentTrack, likedTracks]);
 
+  /* ─── Stable callback refs for event listeners ─── */
+
+  const handlePlayEvent = useCallback(() => setIsPlaying(true), [setIsPlaying]);
+  const handlePauseEvent = useCallback(
+    () => setIsPlaying(false),
+    [setIsPlaying],
+  );
+  const handleSeekEvent = useCallback(
+    (time: number) => setCurrentTime(time),
+    [],
+  );
+
+  const handleTrackChangeEvent = useCallback(
+    (track: ReturnType<typeof audioPlayer.getPlaybackList>[number]) => {
+      if (track) {
+        setCurrentTrack(track);
+        setIsPlaying(true);
+      }
+    },
+    [setCurrentTrack, setIsPlaying],
+  );
+
+  const handleEndEvent = useCallback(() => {
+    // Auto-advance is handled inside audioPlayer.handleTrackEnd
+    // The trackChange event will fire if there's a next track
+  }, []);
+
   useEffect(() => {
-    audioPlayer.on("play", () => setIsPlaying(true));
-    audioPlayer.on("pause", () => setIsPlaying(false));
-    audioPlayer.on("end", () => handleNext());
-    audioPlayer.on("seek", (time: number) => setCurrentTime(time));
+    audioPlayer.on("play", handlePlayEvent);
+    audioPlayer.on("pause", handlePauseEvent);
+    audioPlayer.on("end", handleEndEvent);
+    audioPlayer.on("seek", handleSeekEvent);
+    audioPlayer.on("trackChange", handleTrackChangeEvent);
 
     const interval = setInterval(() => {
       const time = audioPlayer.getCurrentTime();
@@ -62,20 +93,29 @@ const EnhancedAudioPlayer: React.FC = () => {
         setCurrentTime(time);
         setProgress((time / duration) * 100);
       }
-    }, 100);
+    }, 250);
 
     return () => {
-      audioPlayer.off("play", () => {});
-      audioPlayer.off("pause", () => {});
-      audioPlayer.off("end", () => {});
-      audioPlayer.off("seek", () => {});
+      audioPlayer.off("play", handlePlayEvent);
+      audioPlayer.off("pause", handlePauseEvent);
+      audioPlayer.off("end", handleEndEvent);
+      audioPlayer.off("seek", handleSeekEvent);
+      audioPlayer.off("trackChange", handleTrackChangeEvent);
       clearInterval(interval);
     };
-  });
+  }, [
+    handlePlayEvent,
+    handlePauseEvent,
+    handleEndEvent,
+    handleSeekEvent,
+    handleTrackChangeEvent,
+    setProgress,
+  ]);
+
+  /* ─── Playback controls ─── */
 
   const handlePlayPause = () => {
     if (!currentTrack) return;
-
     if (isPlaying) {
       audioPlayer.pause();
     } else {
@@ -85,17 +125,11 @@ const EnhancedAudioPlayer: React.FC = () => {
   };
 
   const handleNext = () => {
-    // Implement next track logic based on shuffle and repeat
-    console.log("Next track");
+    playNext();
   };
 
-  const handlePrevious = () => {
-    if (currentTime > 3) {
-      audioPlayer.seek(0);
-    } else {
-      // Previous track logic
-      console.log("Previous track");
-    }
+  const handlePreviousTrack = () => {
+    playPrevious();
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,12 +140,10 @@ const EnhancedAudioPlayer: React.FC = () => {
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressBarRef.current || !currentTrack) return;
-
     const rect = progressBarRef.current.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     const duration = audioPlayer.getDuration();
     const newTime = percent * duration;
-
     audioPlayer.seek(newTime);
     setCurrentTime(newTime);
   };
@@ -132,18 +164,20 @@ const EnhancedAudioPlayer: React.FC = () => {
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}
-            className="fixed bottom-0 left-0 right-0 bg-linear-to-t from-black/95 via-black/90 to-transparent backdrop-blur-xl border-t border-white/10 z-50 p-4 shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 bg-linear-to-t from-black/95 via-black/90 to-transparent backdrop-blur-xl border-t border-white/10 z-50 p-3 md:p-4 shadow-2xl"
           >
-            {/* HIDE BUTTON - Absolute positioned top right */}
+            {/* HIDE BUTTON */}
             <button
               onClick={() => setIsVisible(false)}
-              className="absolute right-4 -top-5 bg-black/80 border border-white/10 rounded-t-lg px-3 py-1 text-white/60 hover:text-white transition-colors flex items-center gap-1 text-xs"
+              className="absolute right-2 md:right-4 -top-4 md:-top-5 bg-black/80 border border-white/10 rounded-t-lg px-2 md:px-3 py-1 text-white/60 hover:text-white transition-colors flex items-center gap-1 text-xs"
             >
-              <ChevronDown size={14} /> Hide Player
+              <ChevronDown size={14} />
+              <span className="hidden sm:inline">Hide Player</span>
             </button>
+
             <div className="max-w-screen-2xl mx-auto">
               {/* Progress Bar */}
-              <div className="mb-3 group/progress">
+              <div className="mb-2 md:mb-3 group/progress">
                 <div
                   ref={progressBarRef}
                   onClick={handleProgressClick}
@@ -163,30 +197,26 @@ const EnhancedAudioPlayer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 flex-1">
-                {/* ... Image, Title, Artist ... */}
-                <div>
-                  <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0">
-                    <Image
-                      width={100}
-                      height={100}
-                      src={currentTrack.coverUrl}
-                      alt={currentTrack.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-linear-to-tr from-purple-500/20 to-pink-500/20" />
-                  </div>
-                  <div className="text-pink-200 text-sm">
-                    {currentTrack.artist}
-                  </div>
-                </div>
-              </div>
-
-              {/* Player Controls */}
-              <div className="flex items-center justify-between gap-4">
+              {/* Desktop Layout */}
+              <div className="hidden md:flex items-center gap-4">
                 {/* Track Info */}
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="min-w-0">
+                  <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0">
+                    {currentTrack.coverUrl ? (
+                      <Image
+                        width={56}
+                        height={56}
+                        src={currentTrack.coverUrl}
+                        alt={currentTrack.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-linear-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                        <span className="text-white text-xl">🎵</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <h4 className="font-semibold text-white truncate">
                       {currentTrack.title}
                     </h4>
@@ -194,7 +224,6 @@ const EnhancedAudioPlayer: React.FC = () => {
                       {currentTrack.artist}
                     </p>
                   </div>
-
                   <button
                     onClick={() => toggleLikeTrack(currentTrack)}
                     className="p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -219,14 +248,12 @@ const EnhancedAudioPlayer: React.FC = () => {
                   >
                     <Shuffle className="w-5 h-5" />
                   </button>
-
                   <button
-                    onClick={handlePrevious}
+                    onClick={handlePreviousTrack}
                     className="p-2 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                   >
                     <SkipBack className="w-5 h-5" />
                   </button>
-
                   <button
                     onClick={handlePlayPause}
                     className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg"
@@ -237,14 +264,12 @@ const EnhancedAudioPlayer: React.FC = () => {
                       <Play className="w-6 h-6 fill-current ml-0.5" />
                     )}
                   </button>
-
                   <button
                     onClick={handleNext}
                     className="p-2 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                   >
                     <SkipForward className="w-5 h-5" />
                   </button>
-
                   <button
                     onClick={toggleRepeat}
                     className={`p-2 rounded-lg transition-colors ${
@@ -261,11 +286,14 @@ const EnhancedAudioPlayer: React.FC = () => {
                   </button>
                 </div>
 
-                
                 {/* Volume Controls */}
                 <div className="flex items-center gap-2 flex-1 justify-end">
                   <button
-                    onClick={() => setVolume(volume === 0 ? 70 : 0)}
+                    onClick={() => {
+                      const newVol = volume === 0 ? 70 : 0;
+                      setVolume(newVol);
+                      audioPlayer.setVolume(newVol / 100);
+                    }}
                     className="p-2 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                   >
                     {volume === 0 ? (
@@ -274,7 +302,6 @@ const EnhancedAudioPlayer: React.FC = () => {
                       <Volume2 className="w-5 h-5" />
                     )}
                   </button>
-
                   <input
                     type="range"
                     min="0"
@@ -285,31 +312,94 @@ const EnhancedAudioPlayer: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Mobile Layout */}
+              <div className="flex md:hidden items-center gap-3">
+                {/* Track Info */}
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
+                  {currentTrack.coverUrl ? (
+                    <Image
+                      width={48}
+                      height={48}
+                      src={currentTrack.coverUrl}
+                      alt={currentTrack.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-linear-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                      <span className="text-white text-lg">🎵</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-white truncate text-sm">
+                    {currentTrack.title}
+                  </h4>
+                  <p className="text-xs text-white/60 truncate">
+                    {currentTrack.artist}
+                  </p>
+                </div>
+
+                {/* Compact Controls */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => toggleLikeTrack(currentTrack)}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${
+                        isLiked ? "fill-red-500 text-red-500" : "text-white/60"
+                      }`}
+                    />
+                  </button>
+                  <button
+                    onClick={handlePreviousTrack}
+                    className="p-2 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                  >
+                    <SkipBack className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handlePlayPause}
+                    className="w-10 h-10 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg"
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-5 h-5 fill-current" />
+                    ) : (
+                      <Play className="w-5 h-5 fill-current ml-0.5" />
+                    )}
+                  </button>
+                  <button
+                    onClick={handleNext}
+                    className="p-2 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                  >
+                    <SkipForward className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.div>
         ) : (
-          /* MINIMIZED STATE FAB (Floating Action Button) */
+          /* MINIMIZED STATE FAB */
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
+            className="fixed bottom-4 md:bottom-6 right-4 md:right-6 z-50"
           >
-            <div className="flex items-center gap-3 bg-gray-900 border border-white/10 p-2 pl-3 rounded-full shadow-2xl">
+            <div className="flex items-center gap-2 md:gap-3 bg-gray-900 border border-white/10 p-2 pl-3 rounded-full shadow-2xl">
               <div className="flex flex-col">
-                <span className="text-white text-xs font-bold max-w-[100px] truncate">
+                <span className="text-white text-xs font-bold max-w-20 md:max-w-[100px] truncate">
                   {currentTrack.title}
                 </span>
                 <span className="text-green-400 text-[10px] animate-pulse">
                   Now Playing
                 </span>
               </div>
-
               <button
                 onClick={() => setIsVisible(true)}
-                className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center hover:bg-purple-500 transition-colors"
+                className="w-9 h-9 md:w-10 md:h-10 bg-purple-600 rounded-full flex items-center justify-center hover:bg-purple-500 transition-colors"
               >
-                <ChevronUp size={20} className="text-white" />
+                <ChevronUp size={18} className="text-white" />
               </button>
             </div>
           </motion.div>

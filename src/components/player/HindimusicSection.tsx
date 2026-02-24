@@ -5,10 +5,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Play, Heart, Clock, Globe } from "lucide-react";
 import Image from "next/image";
-import {
-  usePlayerStore,
-  type LibraryTrack,
-} from "@/src/lib/store/playerStore";
+import { usePlayerStore, type LibraryTrack } from "@/src/lib/store/playerStore";
 import { audioPlayer } from "@/src/lib/audio/player";
 import { createAudioTrack } from "@/src/lib/utils/audio";
 
@@ -21,6 +18,7 @@ export default function HindimusicSection() {
     setIsPlaying,
     currentTrack,
     isPlaying,
+    setPlaybackListState,
   } = usePlayerStore();
 
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -73,6 +71,21 @@ export default function HindimusicSection() {
       coverUrl: track.coverUrl || "",
       genre: track.genre || "unknown",
     });
+
+    // Build playback list from the filtered Hindi songs
+    const allAudioTracks = filteredSongs.map(t =>
+      createAudioTrack({
+        id: t.id,
+        title: t.title,
+        artist: t.artist,
+        url: t.url,
+        duration: t.duration,
+        coverUrl: t.coverUrl || "",
+        genre: t.genre || "unknown",
+      }),
+    );
+    const clickedIndex = allAudioTracks.findIndex(t => t.id === track.id);
+    setPlaybackListState(allAudioTracks, clickedIndex >= 0 ? clickedIndex : 0);
 
     setCurrentTrack(audioTrack);
     audioPlayer.play(audioTrack);
